@@ -82,65 +82,27 @@ Adafruit_RGBLCDShield::Adafruit_RGBLCDShield() {
   // we can't begin() yet :(
 }
 
-void Adafruit_RGBLCDShield::init(uint8_t fourbitmode, uint8_t rs, uint8_t rw,
-                                 uint8_t enable, uint8_t d0, uint8_t d1,
-                                 uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5,
-                                 uint8_t d6, uint8_t d7) {
-  _rs_pin = rs;
-  _rw_pin = rw;
-  _enable_pin = enable;
-
-  _data_pins[0] = d0;
-  _data_pins[1] = d1;
-  _data_pins[2] = d2;
-  _data_pins[3] = d3;
-  _data_pins[4] = d4;
-  _data_pins[5] = d5;
-  _data_pins[6] = d6;
-  _data_pins[7] = d7;
-
-  _i2cAddr = 255;
-
-  _pinMode(_rs_pin, OUTPUT);
-  // we can save 1 pin by not using RW. Indicate by passing 255 instead of pin#
-  if (_rw_pin != 255) {
-    _pinMode(_rw_pin, OUTPUT);
-  }
-  _pinMode(_enable_pin, OUTPUT);
-
-  if (fourbitmode)
-    _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
-  else
-    _displayfunction = LCD_8BITMODE | LCD_1LINE | LCD_5x8DOTS;
-
-  begin(16, 1);
-}
 
 void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
                                   uint8_t dotsize) {
-  // check if i2c
-  if (_i2cAddr != 255) {
-    //_i2c.begin(_i2cAddr);
-    WIRE.begin();
-    _i2c.begin();
+  WIRE.begin();
+  _i2c.begin();
 
-    _i2c.pinMode(8, OUTPUT);
-    _i2c.pinMode(6, OUTPUT);
-    _i2c.pinMode(7, OUTPUT);
-    setBacklight(0x7);
+  _i2c.pinMode(8, OUTPUT);
+  _i2c.pinMode(6, OUTPUT);
+  _i2c.pinMode(7, OUTPUT);
+  setBacklight(0x7);
 
-    if (_rw_pin)
-      _i2c.pinMode(_rw_pin, OUTPUT);
+  _i2c.pinMode(_rw_pin, OUTPUT);
 
-    _i2c.pinMode(_rs_pin, OUTPUT);
-    _i2c.pinMode(_enable_pin, OUTPUT);
-    for (uint8_t i = 0; i < 4; i++)
-      _i2c.pinMode(_data_pins[i], OUTPUT);
+  _i2c.pinMode(_rs_pin, OUTPUT);
+  _i2c.pinMode(_enable_pin, OUTPUT);
+  for (uint8_t i = 0; i < 4; i++) 
+    _i2c.pinMode(_data_pins[i], OUTPUT);
 
-    for (uint8_t i = 0; i < 5; i++) {
-      _i2c.pinMode(_button_pins[i], INPUT);
-      _i2c.pullUp(_button_pins[i], 1);
-    }
+  for (uint8_t i = 0; i < 5; i++) {
+    _i2c.pinMode(_button_pins[i], INPUT);
+    _i2c.pullUp(_button_pins[i], 1);
   }
 
   if (lines > 1) {
@@ -162,44 +124,22 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
   // Now we pull both RS and R/W low to begin commands
   _digitalWrite(_rs_pin, LOW);
   _digitalWrite(_enable_pin, LOW);
-  if (_rw_pin != 255) {
-    _digitalWrite(_rw_pin, LOW);
-  }
+  _digitalWrite(_rw_pin, LOW);
+  
+  // put the LCD into 4 bit mode
+  // this is according to the hitachi HD44780 datasheet
+  // page 45 figure 23
 
-  // put the LCD into 4 bit or 8 bit mode
-  if (!(_displayfunction & LCD_8BITMODE)) {
-    // this is according to the hitachi HD44780 datasheet
-    // figure 24, pg 46
+  // Send function set command sequence
+  command(LCD_FUNCTIONSET | _displayfunction);
+  delayMicroseconds(4500);  // wait more than 4.1ms
 
-    // we start in 8bit mode, try to set 4 bit mode
-    write4bits(0x03);
-    delayMicroseconds(4500); // wait min 4.1ms
+  // second try
+  command(LCD_FUNCTIONSET | _displayfunction);
+  delayMicroseconds(150);
 
-    // second try
-    write4bits(0x03);
-    delayMicroseconds(4500); // wait min 4.1ms
-
-    // third go!
-    write4bits(0x03);
-    delayMicroseconds(150);
-
-    // finally, set to 8-bit interface
-    write4bits(0x02);
-  } else {
-    // this is according to the hitachi HD44780 datasheet
-    // page 45 figure 23
-
-    // Send function set command sequence
-    command(LCD_FUNCTIONSET | _displayfunction);
-    delayMicroseconds(4500); // wait more than 4.1ms
-
-    // second try
-    command(LCD_FUNCTIONSET | _displayfunction);
-    delayMicroseconds(150);
-
-    // third go
-    command(LCD_FUNCTIONSET | _displayfunction);
-  }
+  // third go
+  command(LCD_FUNCTIONSET | _displayfunction);
 
   // finally, set # lines, font size, etc.
   command(LCD_FUNCTIONSET | _displayfunction);
@@ -211,7 +151,7 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
   // clear it off
   clear();
 
-  // Initialize to default text direction (for romance languages)
+  // Initialize to default text direction (for roman languages)
   _displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
   // set the entry mode
   command(LCD_ENTRYMODESET | _displaymode);
@@ -327,13 +267,8 @@ inline void Adafruit_RGBLCDShield::write(uint8_t value) { send(value, HIGH); }
 
 // little wrapper for i/o writes
 void Adafruit_RGBLCDShield::_digitalWrite(uint8_t p, uint8_t d) {
-  if (_i2cAddr != 255) {
-    // an i2c command
-    _i2c.digitalWrite(p, d);
-  } else {
-    // straightup IO
-    digitalWrite(p, d);
-  }
+  // an i2c command
+  _i2c.digitalWrite(p, d);
 }
 
 // Allows to set the backlight, if the LCD backpack is used
@@ -346,13 +281,8 @@ void Adafruit_RGBLCDShield::setBacklight(uint8_t status) {
 
 // little wrapper for i/o directions
 void Adafruit_RGBLCDShield::_pinMode(uint8_t p, uint8_t d) {
-  if (_i2cAddr != 255) {
-    // an i2c command
-    _i2c.pinMode(p, d);
-  } else {
-    // straightup IO
-    pinMode(p, d);
-  }
+  // an i2c command
+  _i2c.pinMode(p, d);
 }
 
 // write either command or data, with automatic 4/8-bit selection
@@ -382,38 +312,29 @@ void Adafruit_RGBLCDShield::pulseEnable(void) {
 }
 
 void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
-  if (_i2cAddr != 255) {
-    uint16_t out = 0;
+  uint16_t out = 0;
 
-    out = _i2c.readGPIOAB();
+  out = _i2c.readGPIOAB();
 
-    // speed up for i2c since its sluggish
-    for (int i = 0; i < 4; i++) {
-      out &= ~(1 << _data_pins[i]);
-      out |= ((value >> i) & 0x1) << _data_pins[i];
-    }
-
-    // make sure enable is low
-    out &= ~(1 << _enable_pin);
-
-    _i2c.writeGPIOAB(out);
-
-    // pulse enable
-    delayMicroseconds(1);
-    out |= (1 << _enable_pin);
-    _i2c.writeGPIOAB(out);
-    delayMicroseconds(1);
-    out &= ~(1 << _enable_pin);
-    _i2c.writeGPIOAB(out);
-    delayMicroseconds(100);
-
-  } else {
-    for (int i = 0; i < 4; i++) {
-      _pinMode(_data_pins[i], OUTPUT);
-      _digitalWrite(_data_pins[i], (value >> i) & 0x01);
-    }
-    pulseEnable();
+  // speed up for i2c since its sluggish
+  for (int i = 0; i < 4; i++) {
+    out &= ~(1 << _data_pins[i]);
+    out |= ((value >> i) & 0x1) << _data_pins[i];
   }
+
+  // make sure enable is low
+  out &= ~(1 << _enable_pin);
+
+  _i2c.writeGPIOAB(out);
+
+  // pulse enable
+  delayMicroseconds(1);
+  out |= (1 << _enable_pin);
+  _i2c.writeGPIOAB(out);
+  delayMicroseconds(1);
+  out &= ~(1 << _enable_pin);
+  _i2c.writeGPIOAB(out);
+  delayMicroseconds(100);
 }
 
 void Adafruit_RGBLCDShield::write8bits(uint8_t value) {
