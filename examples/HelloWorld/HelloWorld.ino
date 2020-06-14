@@ -7,11 +7,13 @@ When a button is pressed, the backlight changes color.
 
 **********************/
 
+// Define if your LCD has a RGB backlight:
+// #define RGB_BACKLIGHT
+
 // include the library code:
 #include <Wire.h>
 #include <Adafruit_RGBLCDShield_Fast.h>
 #include <utility/Adafruit_MCP23017.h>
-
 
 // The shield uses the I2C SCL and SDA pins. On classic Arduinos
 // this is Analog 4 and 5 so you can't use those for analogRead() anymore
@@ -58,23 +60,33 @@ void loop() {
     lcd.setCursor(0,0);
     if (buttons & BUTTON_UP) {
       lcd.print("UP ");
+#ifdef RGB_BACKLIGHT      
       lcd.setBacklight(RED);
+#endif
     }
     if (buttons & BUTTON_DOWN) {
       lcd.print("DOWN ");
+#ifdef RGB_BACKLIGHT      
       lcd.setBacklight(YELLOW);
+#endif
     }
     if (buttons & BUTTON_LEFT) {
       lcd.print("LEFT ");
+#ifdef RGB_BACKLIGHT      
       lcd.setBacklight(GREEN);
+#endif
     }
     if (buttons & BUTTON_RIGHT) {
       lcd.print("RIGHT ");
+#ifdef RGB_BACKLIGHT      
       lcd.setBacklight(TEAL);
+#endif
     }
     if (buttons & BUTTON_SELECT) {
       lcd.print("SELECT ");
+#ifdef RGB_BACKLIGHT      
       lcd.setBacklight(VIOLET);
+#endif
     }
   }
 }
