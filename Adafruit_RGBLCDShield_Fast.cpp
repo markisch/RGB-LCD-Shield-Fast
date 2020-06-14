@@ -23,7 +23,7 @@
  * BSD license, all text above must be included in any redistribution
  */
 
-#include "Adafruit_RGBLCDShield.h"
+#include "Adafruit_RGBLCDShield_Fast.h"
 
 #include <Wire.h>
 #include <inttypes.h>

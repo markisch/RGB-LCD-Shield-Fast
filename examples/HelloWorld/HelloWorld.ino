@@ -9,7 +9,7 @@ When a button is pressed, the backlight changes color.
 
 // include the library code:
 #include <Wire.h>
-#include <Adafruit_RGBLCDShield.h>
+#include <Adafruit_RGBLCDShield_Fast.h>
 #include <utility/Adafruit_MCP23017.h>
 
 
