@@ -292,12 +292,8 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   // set RW pin low to Write
   _digitalWrite(_rw_pin, LOW);
 
-  if (_displayfunction & LCD_8BITMODE) {
-    write8bits(value);
-  } else {
-    write4bits(value >> 4);
-    write4bits(value);
-  }
+  write4bits(value >> 4);
+  write4bits(value);
 }
 
 void Adafruit_RGBLCDShield::pulseEnable(void) {
@@ -333,15 +329,6 @@ void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   out &= ~(1 << _enable_pin);
   _i2c.writeGPIOAB(out);
   delayMicroseconds(100);
-}
-
-void Adafruit_RGBLCDShield::write8bits(uint8_t value) {
-  for (int i = 0; i < 8; i++) {
-    _pinMode(_data_pins[i], OUTPUT);
-    _digitalWrite(_data_pins[i], (value >> i) & 0x01);
-  }
-
-  pulseEnable();
 }
 
 uint8_t Adafruit_RGBLCDShield::readButtons(void) {
