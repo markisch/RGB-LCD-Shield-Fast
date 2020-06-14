@@ -97,7 +97,7 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
 
   _i2c.pinMode(_rs_pin, OUTPUT);
   _i2c.pinMode(_enable_pin, OUTPUT);
-  for (uint8_t i = 0; i < 4; i++) 
+  for (uint8_t i = 0; i < 4; i++)
     _i2c.pinMode(_data_pins[i], OUTPUT);
 
   for (uint8_t i = 0; i < 5; i++) {
@@ -125,7 +125,7 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
   _digitalWrite(_rs_pin, LOW);
   _digitalWrite(_enable_pin, LOW);
   _digitalWrite(_rw_pin, LOW);
-  
+
   // put the LCD into 4 bit mode
   // this is according to the hitachi HD44780 datasheet
   // page 45 figure 23
