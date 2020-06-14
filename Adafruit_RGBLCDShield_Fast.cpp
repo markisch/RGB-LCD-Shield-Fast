@@ -108,6 +108,7 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
   _digitalWrite(_rs_pin, LOW);
   _digitalWrite(_enable_pin, LOW);
   _digitalWrite(_rw_pin, LOW);
+  _rw_state = _enable_state = _rs_state = LOW;
 
   // put the LCD into 4 bit mode
   // this is according to the Hitachi HD44780 datasheet
@@ -264,6 +265,7 @@ void Adafruit_RGBLCDShield::setBacklight(uint8_t status) {
   _i2c.digitalWrite(8, ~(status >> 2) & 0x1);
   _i2c.digitalWrite(7, ~(status >> 1) & 0x1);
   _i2c.digitalWrite(6, ~status & 0x1);
+  _backlight = status;
 }
 
 // little wrapper for i/o directions
@@ -274,11 +276,8 @@ void Adafruit_RGBLCDShield::_pinMode(uint8_t p, uint8_t d) {
 
 // write either command or data, with automatic 4/8-bit selection
 void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
-  _digitalWrite(_rs_pin, mode);
-
-  // set RW pin low to Write
-  _digitalWrite(_rw_pin, LOW);
-
+  _rs_state = mode;
+  _rw_state = LOW;
   write4bits(value >> 4);
   write4bits(value);
 }
@@ -286,21 +285,23 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
 void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   uint8_t out;
 
-  // all LCD pins are on port B
-  out = _i2c.readGPIOB();
-
-  // speed up for i2c since its sluggish
-  for (int i = 0; i < 4; i++) {
-    out &= ~(1 << (_data_pins[i] - 8));
+  // all LCD pins are on port B and we know them all already
+  out = ~(_backlight >> 2) & 0x1;
+  if (_rs_state == HIGH)
+    out |= (0x1 << (_rs_pin - 8));
+  if (_rw_state == HIGH)
+    out |= (0x1 << (_rw_pin - 8));
+  for (int i = 0; i < 4; i++)
     out |= ((value >> i) & 0x1) << (_data_pins[i] - 8);
-  }
 
   // make sure enable is low
-  out &= ~(1 << (_enable_pin - 8));
-  _i2c.writeGPIOB(out);
+  if (_enable_state == HIGH) {
+    out &= ~(1 << (_enable_pin - 8));
+    _i2c.writeGPIOB(out);
+    delayMicroseconds(1);
+  }
 
   // pulse enable
-  delayMicroseconds(1);
   out |= (1 << (_enable_pin - 8));
   _i2c.writeGPIOB(out);
   delayMicroseconds(1);
