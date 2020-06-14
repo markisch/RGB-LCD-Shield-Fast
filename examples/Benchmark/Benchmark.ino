@@ -1,5 +1,3 @@
-// Simple Benchmark adopted to Adafruit RGB LCD Shield from 
-//   https://github.com/Swap-File/tron-suit/tree/master/Helmet/Software/Libraries/LiquidCrystalFast/examples/Benchmark
 #include <Wire.h>
 #include <Adafruit_RGBLCDShield_Fast.h>
 //#include <Adafruit_RGBLCDShield.h>
@@ -29,6 +27,13 @@ char blanks[length+1];
 
 void setup(void) {
   lcd.begin(nColumns,nRows);
+
+  // First speed tweak: increase I2C Clock to 400kHz (full speed)
+  // Note that doing that _before_ lcd.begin() does not work since it will
+  // reset to defaults.
+  // Speed: 7281 ms -> 2733 ms
+  Wire.setClock(400000);
+
   lcd.setBacklight(WHITE);
   lcd.setCursor(0,0);
   char c = 'A';
