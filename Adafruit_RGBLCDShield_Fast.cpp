@@ -319,10 +319,6 @@ void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
 }
 
 uint8_t Adafruit_RGBLCDShield::readButtons(void) {
-  uint8_t reply = 0x1F;
-
-  for (uint8_t i = 0; i < 5; i++) {
-    reply &= ~((_i2c.digitalRead(_button_pins[i])) << i);
-  }
-  return reply;
+  // all buttons are on port A: read all in one go
+  return (~_i2c.readGPIOA() & 0x1F);
 }
