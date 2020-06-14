@@ -283,15 +283,6 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   write4bits(value);
 }
 
-void Adafruit_RGBLCDShield::pulseEnable(void) {
-  _digitalWrite(_enable_pin, LOW);
-  delayMicroseconds(1);
-  _digitalWrite(_enable_pin, HIGH);
-  delayMicroseconds(1); // enable pulse must be >450ns
-  _digitalWrite(_enable_pin, LOW);
-  delayMicroseconds(100); // commands need > 37us to settle
-}
-
 void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   uint8_t out;
 
