@@ -55,13 +55,20 @@ void setup(void) {
   unsigned long endTime = millis();
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print("Benchmark ");
+  lcd.print(F("Benchmark "));
   lcd.print(nColumns, DEC);
   lcd.write('x');
   lcd.print(nRows, DEC);
   lcd.setCursor(0,1);
   lcd.print(endTime - startTime);
-  lcd.print(" millisecs.");
+  lcd.print(F(" ms,  "));
+  unsigned long x = (728100 / (endTime - startTime) + 5) / 10;
+  if (x < 100)
+    lcd.write(' ');
+  lcd.print(x / 10);
+  lcd.write('.');
+  lcd.print(x % 10);
+  lcd.write('x');
 }
 
 void loop() {
