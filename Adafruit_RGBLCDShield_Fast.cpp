@@ -7,7 +7,7 @@
  *
  * This is a library for the Adafruit RGB 16x2 LCD Shield
  * Pick one up at the Adafruit shop!
- * ---------> http://http://www.adafruit.com/products/714
+ * ---------> http://www.adafruit.com/products/714
  *
  * The shield uses I2C to communicate, 2 pins are required to
  * interface
