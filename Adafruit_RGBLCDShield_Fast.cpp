@@ -128,18 +128,22 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
 
   // put the LCD into 4 bit mode
   // this is according to the Hitachi HD44780 datasheet
-  // page 45 figure 23
+  // figure 24, pg 46
 
-  // Send function set command sequence
-  command(LCD_FUNCTIONSET | _displayfunction);
-  delayMicroseconds(4500);  // wait more than 4.1ms
+  // we start in 8bit mode, try to set 4 bit mode
+  write4bits(0x03);
+  delayMicroseconds(4500); // wait min 4.1ms
 
   // second try
-  command(LCD_FUNCTIONSET | _displayfunction);
+  write4bits(0x03);
+  delayMicroseconds(4500); // wait min 4.1ms
+
+  // third go!
+  write4bits(0x03);
   delayMicroseconds(150);
 
-  // third go
-  command(LCD_FUNCTIONSET | _displayfunction);
+  // finally, set to 8-bit interface
+  write4bits(0x02);
 
   // finally, set # lines, font size, etc.
   command(LCD_FUNCTIONSET | _displayfunction);
