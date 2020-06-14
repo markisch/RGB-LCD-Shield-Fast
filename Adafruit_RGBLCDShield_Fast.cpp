@@ -61,24 +61,7 @@
 // RGBLCDShield constructor is called).
 
 Adafruit_RGBLCDShield::Adafruit_RGBLCDShield() {
-  _i2cAddr = 0;
-
   _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
-
-  // the I/O expander pinout
-  _rs_pin = 15;
-  _rw_pin = 14;
-  _enable_pin = 13;
-  _data_pins[0] = 12; // really d4
-  _data_pins[1] = 11; // really d5
-  _data_pins[2] = 10; // really d6
-  _data_pins[3] = 9;  // really d7
-
-  _button_pins[0] = 0;
-  _button_pins[1] = 1;
-  _button_pins[2] = 2;
-  _button_pins[3] = 3;
-  _button_pins[4] = 4;
   // we can't begin() yet :(
 }
 
@@ -310,28 +293,28 @@ void Adafruit_RGBLCDShield::pulseEnable(void) {
 }
 
 void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
-  uint16_t out = 0;
+  uint8_t out;
 
-  out = _i2c.readGPIOAB();
+  // all LCD pins are on port B
+  out = _i2c.readGPIOB();
 
   // speed up for i2c since its sluggish
   for (int i = 0; i < 4; i++) {
-    out &= ~(1 << _data_pins[i]);
-    out |= ((value >> i) & 0x1) << _data_pins[i];
+    out &= ~(1 << (_data_pins[i] - 8));
+    out |= ((value >> i) & 0x1) << (_data_pins[i] - 8);
   }
 
   // make sure enable is low
-  out &= ~(1 << _enable_pin);
-
-  _i2c.writeGPIOAB(out);
+  out &= ~(1 << (_enable_pin - 8));
+  _i2c.writeGPIOB(out);
 
   // pulse enable
   delayMicroseconds(1);
-  out |= (1 << _enable_pin);
-  _i2c.writeGPIOAB(out);
+  out |= (1 << (_enable_pin - 8));
+  _i2c.writeGPIOB(out);
   delayMicroseconds(1);
-  out &= ~(1 << _enable_pin);
-  _i2c.writeGPIOAB(out);
+  out &= ~(1 << (_enable_pin - 8));
+  _i2c.writeGPIOB(out);
   delayMicroseconds(100);
 }
 

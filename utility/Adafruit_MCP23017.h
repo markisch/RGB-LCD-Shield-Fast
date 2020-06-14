@@ -25,7 +25,11 @@ public:
   void pullUp(uint8_t p, uint8_t d);
   uint8_t digitalRead(uint8_t p);
 
+  void writeGPIOA(uint8_t);
+  void writeGPIOB(uint8_t);
   void writeGPIOAB(uint16_t);
+  uint8_t readGPIOA();
+  uint8_t readGPIOB();
   uint16_t readGPIOAB();
 
 private:

@@ -200,11 +200,12 @@ private:
   void _digitalWrite(uint8_t, uint8_t);
   void _pinMode(uint8_t, uint8_t);
 
-  uint8_t _rs_pin;     // LOW: command.  HIGH: character.
-  uint8_t _rw_pin;     // LOW: write to LCD.  HIGH: read from LCD.
-  uint8_t _enable_pin; // activated by a HIGH pulse.
-  uint8_t _data_pins[8];
-  uint8_t _button_pins[5];
+  // the I/O expander pinout
+  const uint8_t _rs_pin = 15;     // LOW: command.  HIGH: character.
+  const uint8_t _rw_pin = 14;     // LOW: write to LCD.  HIGH: read from LCD.
+  const uint8_t _enable_pin = 13; // activated by a HIGH pulse.
+  const uint8_t _data_pins[4] = { 12, 11, 10, 9 };  // d4,d5,d6,d7
+  const uint8_t _button_pins[5] = { 0, 1, 2, 3, 4 };
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
   uint8_t _displaymode;
@@ -213,7 +214,6 @@ private:
 
   uint8_t _numlines, _currline;
 
-  uint8_t _i2cAddr;
   Adafruit_MCP23017 _i2c;
 };
 

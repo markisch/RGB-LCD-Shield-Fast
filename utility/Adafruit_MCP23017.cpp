@@ -108,6 +108,26 @@ void Adafruit_MCP23017::pinMode(uint8_t p, uint8_t d) {
   WIRE.endTransmission();
 }
 
+uint8_t Adafruit_MCP23017::readGPIOA() {
+  // read the current GPIO output latches
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_GPIOA);
+  WIRE.endTransmission();
+
+  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
+  return wirerecv();
+}
+
+uint8_t Adafruit_MCP23017::readGPIOB() {
+  // read the current GPIO output latches
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_GPIOB);
+  WIRE.endTransmission();
+
+  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
+  return wirerecv();
+}
+
 uint16_t Adafruit_MCP23017::readGPIOAB() {
   uint16_t ba = 0;
   uint8_t a;
@@ -124,6 +144,20 @@ uint16_t Adafruit_MCP23017::readGPIOAB() {
   ba |= a;
 
   return ba;
+}
+
+void Adafruit_MCP23017::writeGPIOA(uint8_t a) {
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_GPIOA);
+  wiresend(a);
+  WIRE.endTransmission();
+}
+
+void Adafruit_MCP23017::writeGPIOB(uint8_t b) {
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_GPIOB);
+  wiresend(b);
+  WIRE.endTransmission();
 }
 
 void Adafruit_MCP23017::writeGPIOAB(uint16_t ba) {
