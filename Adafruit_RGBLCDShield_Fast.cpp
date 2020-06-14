@@ -298,16 +298,22 @@ void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   if (_enable_state == HIGH) {
     out &= ~(1 << (_enable_pin - 8));
     _i2c.writeGPIOB(out);
-    delayMicroseconds(1);
+    //delayMicroseconds(1);
   }
 
   // pulse enable
   out |= (1 << (_enable_pin - 8));
   _i2c.writeGPIOB(out);
-  delayMicroseconds(1);
+  //delayMicroseconds(1);
+  unsigned long time = micros();
   out &= ~(1 << (_enable_pin - 8));
   _i2c.writeGPIOB(out);
-  delayMicroseconds(100);
+  // a single write should take 50us even at 400kHz 
+  // we hence shorten the wait time
+  //delayMicroseconds(100);
+  unsigned long now = micros();
+  if ((now - time) < 100)
+    delayMicroseconds(100 - (now - time));
 }
 
 uint8_t Adafruit_RGBLCDShield::readButtons(void) {
