@@ -209,8 +209,6 @@ private:
   uint8_t _displaycontrol;
   uint8_t _displaymode;
 
-  uint8_t _initialized;
-
   uint8_t _numlines, _currline;
 
   Adafruit_MCP23017 _i2c;
