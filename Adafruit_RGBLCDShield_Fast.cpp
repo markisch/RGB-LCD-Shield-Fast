@@ -280,6 +280,7 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   _rw_state = LOW;
   write4bits(value >> 4);
   write4bits(value);
+  // TODO: read busy?
 }
 
 void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
@@ -305,6 +306,7 @@ void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   out |= (1 << (_enable_pin - 8));
   _i2c.writeGPIOB(out);
   //delayMicroseconds(1);
+#if 0
   unsigned long time = micros();
   out &= ~(1 << (_enable_pin - 8));
   _i2c.writeGPIOB(out);
@@ -314,6 +316,10 @@ void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   unsigned long now = micros();
   if ((now - time) < 100)
     delayMicroseconds(100 - (now - time));
+#else
+  out &= ~(1 << (_enable_pin - 8));
+  _i2c.writeGPIOB(out);
+#endif
 }
 
 uint8_t Adafruit_RGBLCDShield::readButtons(void) {
