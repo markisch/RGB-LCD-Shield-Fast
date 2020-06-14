@@ -118,7 +118,7 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
 
   // SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
   // according to datasheet, we need at least 40ms after power rises above 2.7V
-  // before sending commands. Arduino can turn on way befer 4.5V so we'll wait
+  // before sending commands. Arduino can turn on way before 4.5V so we'll wait
   // 50
   delayMicroseconds(50000);
   // Now we pull both RS and R/W low to begin commands
@@ -127,7 +127,7 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
   _digitalWrite(_rw_pin, LOW);
 
   // put the LCD into 4 bit mode
-  // this is according to the hitachi HD44780 datasheet
+  // this is according to the Hitachi HD44780 datasheet
   // page 45 figure 23
 
   // Send function set command sequence
@@ -289,10 +289,8 @@ void Adafruit_RGBLCDShield::_pinMode(uint8_t p, uint8_t d) {
 void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   _digitalWrite(_rs_pin, mode);
 
-  // if there is a RW pin indicated, set it low to Write
-  if (_rw_pin != 255) {
-    _digitalWrite(_rw_pin, LOW);
-  }
+  // set RW pin low to Write
+  _digitalWrite(_rw_pin, LOW);
 
   if (_displayfunction & LCD_8BITMODE) {
     write8bits(value);
