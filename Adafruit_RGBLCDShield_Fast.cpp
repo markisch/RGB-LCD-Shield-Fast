@@ -71,13 +71,15 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
   WIRE.begin();
   _i2c.begin();
 
+  // enable burst writes by disabling address increment
+  _i2c.byteMode();
+
   _i2c.pinMode(8, OUTPUT);
   _i2c.pinMode(6, OUTPUT);
   _i2c.pinMode(7, OUTPUT);
   setBacklight(0x7);
 
   _i2c.pinMode(_rw_pin, OUTPUT);
-
   _i2c.pinMode(_rs_pin, OUTPUT);
   _i2c.pinMode(_enable_pin, OUTPUT);
   for (uint8_t i = 0; i < 4; i++)
@@ -251,6 +253,58 @@ inline size_t Adafruit_RGBLCDShield::write(uint8_t value) {
 inline void Adafruit_RGBLCDShield::write(uint8_t value) { send(value, HIGH); }
 #endif
 
+size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
+  size_t n = size;
+  uint8_t out, out1;
+
+  _rs_state = HIGH;
+  _rw_state = LOW;
+
+  // all LCD pins are on port B and we know them all already
+  out = ~(_backlight >> 2) & 0x1;
+  out |= 0x80;  // RS==HIGH
+  out1 = out;
+
+  while (size--) {
+    byte value = *buffer++;
+
+    out = out1;
+    if (value & 0x10) out |= 0x10;
+    if (value & 0x20) out |= 0x08;
+    if (value & 0x40) out |= 0x04;
+    if (value & 0x80) out |= 0x02;
+
+    // pulse enable
+    // _i2c.writeGPIOB(out | 0x20);
+    // _i2c.writeGPIOB(out);
+    Wire.beginTransmission(MCP23017_ADDRESS);
+    Wire.write(MCP23017_GPIOB);
+    Wire.write(out | 0x20);
+    Wire.write(out | 0x20);
+    Wire.write(out);
+    Wire.write(out);
+
+    out = out1;
+    if (value & 0x01) out |= 0x10;
+    if (value & 0x02) out |= 0x08;
+    if (value & 0x04) out |= 0x04;
+    if (value & 0x08) out |= 0x02;
+
+    // pulse enable
+    // _i2c.writeGPIOB(out | 0x20);
+    // _i2c.writeGPIOB(out);   
+    Wire.write(out | 0x20);
+    Wire.write(out | 0x20);
+    Wire.write(out);
+    // We don't need to repeat the last one
+    // Wire.write(out);
+    Wire.endTransmission();
+  }
+  // Wire.endTransmission();
+  return n;
+}
+
+
 /************ low level data pushing commands **********/
 
 // little wrapper for i/o writes
@@ -276,11 +330,47 @@ void Adafruit_RGBLCDShield::_pinMode(uint8_t p, uint8_t d) {
 
 // write either command or data, with automatic 4/8-bit selection
 void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
+  uint8_t out, out1;
+
   _rs_state = mode;
   _rw_state = LOW;
-  write4bits(value >> 4);
-  write4bits(value);
-  // TODO: read busy?
+
+  // all LCD pins are on port B and we know them all already
+  out = ~(_backlight >> 2) & 0x1;
+  if (_rs_state == HIGH)
+    out |= 0x80;
+
+  out1 = out;
+  if (value & 0x10) out |= 0x10;
+  if (value & 0x20) out |= 0x08;
+  if (value & 0x40) out |= 0x04;
+  if (value & 0x80) out |= 0x02;
+
+  // pulse enable
+  // _i2c.writeGPIOB(out | 0x20);
+  // _i2c.writeGPIOB(out);
+  Wire.beginTransmission(MCP23017_ADDRESS);
+  Wire.write(MCP23017_GPIOB);
+  Wire.write(out | 0x20);
+  Wire.write(out | 0x20);
+  Wire.write(out);
+  Wire.write(out);
+
+  out = out1;
+  if (value & 0x01) out |= 0x10;
+  if (value & 0x02) out |= 0x08;
+  if (value & 0x04) out |= 0x04;
+  if (value & 0x08) out |= 0x02;
+
+  // pulse enable
+  // _i2c.writeGPIOB(out | 0x20);
+  // _i2c.writeGPIOB(out);
+  Wire.write(out | 0x20);
+  Wire.write(out | 0x20);
+  Wire.write(out);
+  // We don't need to repeat the last one
+  // Wire.write(out);
+  Wire.endTransmission();
 }
 
 void Adafruit_RGBLCDShield::write4bits(uint8_t value) {

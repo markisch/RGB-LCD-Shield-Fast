@@ -183,6 +183,12 @@ public:
   virtual void write(uint8_t);
 #endif
   /*!
+   * @brief Mid-level command that sends data to the display
+   * @param data Data to send to the display
+   * @param len  Length of data
+   */
+  virtual size_t write(const uint8_t *, size_t);
+  /*!
    * @brief Sends command to display
    * @param value Command to send
    */

@@ -266,3 +266,19 @@ uint8_t Adafruit_MCP23017::digitalRead(uint8_t p) {
   WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
   return (wirerecv() >> p) & 0x1;
 }
+
+void Adafruit_MCP23017::sequentialMode()
+{
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_IOCONB);
+  wiresend(0x00);
+  WIRE.endTransmission();
+}
+
+void Adafruit_MCP23017::byteMode()
+{
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_IOCONB);
+  wiresend(0x20);
+  WIRE.endTransmission();
+}

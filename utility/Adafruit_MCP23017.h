@@ -32,6 +32,9 @@ public:
   uint8_t readGPIOB();
   uint16_t readGPIOAB();
 
+  void sequentialMode();
+  void byteMode();
+
 private:
   uint8_t i2caddr;
 };
