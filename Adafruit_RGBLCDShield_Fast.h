@@ -217,6 +217,18 @@ private:
   const uint8_t _enable_pin = 13; // activated by a HIGH pulse.
   const uint8_t _data_pins[4] = { 12, 11, 10, 9 };  // d4,d5,d6,d7
   const uint8_t _button_pins[5] = { 0, 1, 2, 3, 4 };
+
+  // ... and the corresponding bit masks
+  const uint8_t _enable_mask = (1 << (_enable_pin % 8));
+  const uint8_t _rs_mask = (1 << (_rs_pin % 8));
+  const uint8_t _rw_mask = (1 << (_rw_pin % 8));
+  const uint8_t _data_mask[4] = {
+       uint8_t(1 << (_data_pins[0] % 8)),
+       uint8_t(1 << (_data_pins[1] % 8)),
+       uint8_t(1 << (_data_pins[2] % 8)),
+       uint8_t(1 << (_data_pins[3] % 8))
+     };
+
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
   uint8_t _displaymode;

@@ -279,40 +279,40 @@ size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
   _rs_state = HIGH;
   _rw_state = LOW;
 
-  // all LCD pins are on port B and we know them all already
+  // all LCD pins are on port B and we know all bits already
   out = ~(_backlight >> 2) & 0x1;
-  out |= 0x80;  // RS==HIGH
+  out |= _rs_mask;  // RS==HIGH
   out1 = out;
 
   while (size--) {
     byte value = *buffer++;
 
     out = out1;
-    if (value & 0x10) out |= 0x10;
-    if (value & 0x20) out |= 0x08;
-    if (value & 0x40) out |= 0x04;
-    if (value & 0x80) out |= 0x02;
+    if (value & 0x10) out |= _data_mask[0];
+    if (value & 0x20) out |= _data_mask[1];
+    if (value & 0x40) out |= _data_mask[2];
+    if (value & 0x80) out |= _data_mask[3];
 
     // pulse enable
-    // _i2c.writeGPIOB(out | 0x20);
+    // _i2c.writeGPIOB(out | _enable_mask);
     // _i2c.writeGPIOB(out);
     if (c == 0) {
       Wire.beginTransmission(MCP23017_ADDRESS);
       Wire.write(MCP23017_GPIOB);
     }
-    Wire.write(out | 0x20);
+    Wire.write(out | _enable_mask);
     Wire.write(out);
 
     out = out1;
-    if (value & 0x01) out |= 0x10;
-    if (value & 0x02) out |= 0x08;
-    if (value & 0x04) out |= 0x04;
-    if (value & 0x08) out |= 0x02;
+    if (value & 0x01) out |= _data_mask[0];
+    if (value & 0x02) out |= _data_mask[1];
+    if (value & 0x04) out |= _data_mask[2];
+    if (value & 0x08) out |= _data_mask[3];
 
     // pulse enable
-    // _i2c.writeGPIOB(out | 0x20);
+    // _i2c.writeGPIOB(out | _enable_mask);
     // _i2c.writeGPIOB(out);   
-    Wire.write(out | 0x20);
+    Wire.write(out | _enable_mask);
     Wire.write(out);
     c += 4;
     if (c >= BUFFER_LENGTH - 4) {
@@ -356,35 +356,35 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   _rs_state = mode;
   _rw_state = LOW;
 
-  // all LCD pins are on port B and we know them all already
+  // all LCD pins are on port B and we know all bits already
   out = ~(_backlight >> 2) & 0x1;
   if (_rs_state == HIGH)
-    out |= 0x80;
+    out |= _rs_mask;
 
   out1 = out;
-  if (value & 0x10) out |= 0x10;
-  if (value & 0x20) out |= 0x08;
-  if (value & 0x40) out |= 0x04;
-  if (value & 0x80) out |= 0x02;
+  if (value & 0x10) out |= _data_mask[0];
+  if (value & 0x20) out |= _data_mask[1];
+  if (value & 0x40) out |= _data_mask[2];
+  if (value & 0x80) out |= _data_mask[3];
 
   // pulse enable
-  // _i2c.writeGPIOB(out | 0x20);
+  // _i2c.writeGPIOB(out | _enable_mask);
   // _i2c.writeGPIOB(out);
   Wire.beginTransmission(MCP23017_ADDRESS);
   Wire.write(MCP23017_GPIOB);
-  Wire.write(out | 0x20);
+  Wire.write(out | _enable_mask);
   Wire.write(out);
 
   out = out1;
-  if (value & 0x01) out |= 0x10;
-  if (value & 0x02) out |= 0x08;
-  if (value & 0x04) out |= 0x04;
-  if (value & 0x08) out |= 0x02;
+  if (value & 0x01) out |= _data_mask[0];
+  if (value & 0x02) out |= _data_mask[1];
+  if (value & 0x04) out |= _data_mask[2];
+  if (value & 0x08) out |= _data_mask[3];
 
   // pulse enable
-  // _i2c.writeGPIOB(out | 0x20);
+  // _i2c.writeGPIOB(out | _enable_mask);
   // _i2c.writeGPIOB(out);
-  Wire.write(out | 0x20);
+  Wire.write(out | _enable_mask);
   Wire.write(out);
   Wire.endTransmission();
 }
@@ -395,40 +395,28 @@ void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   // all LCD pins are on port B and we know them all already
   out = ~(_backlight >> 2) & 0x1;
   if (_rs_state == HIGH)
-    out |= (0x1 << (_rs_pin - 8));
+    out |= _rs_mask;
   if (_rw_state == HIGH)
-    out |= (0x1 << (_rw_pin - 8));
-  for (int i = 0; i < 4; i++)
-    out |= ((value >> i) & 0x1) << (_data_pins[i] - 8);
+    out |= _rw_mask;
+  for (int i = 0; i < 4; i++) {
+    if ((value >> i) & 0x1)
+      out |= _data_mask[i];
+  }
 
   // make sure enable is low
   if (_enable_state == HIGH) {
-    out &= ~(1 << (_enable_pin - 8));
+    out &= ~_enable_mask;
     _i2c.writeGPIOB(out);
-    //delayMicroseconds(1);
   }
 
   // pulse enable
-  out |= (1 << (_enable_pin - 8));
+  out |= _enable_mask;
   _i2c.writeGPIOB(out);
-  //delayMicroseconds(1);
-#if 0
-  unsigned long time = micros();
-  out &= ~(1 << (_enable_pin - 8));
+  out &= ~_enable_mask;
   _i2c.writeGPIOB(out);
-  // a single write should take 50us even at 400kHz 
-  // we hence shorten the wait time
-  //delayMicroseconds(100);
-  unsigned long now = micros();
-  if ((now - time) < 100)
-    delayMicroseconds(100 - (now - time));
-#else
-  out &= ~(1 << (_enable_pin - 8));
-  _i2c.writeGPIOB(out);
-#endif
 }
 
 uint8_t Adafruit_RGBLCDShield::readButtons(void) {
   // all buttons are on port A: read all in one go
-  return (~_i2c.readGPIOA() & 0x1F);
+  return (~_i2c.readGPIOA() & 0x1f);
 }
