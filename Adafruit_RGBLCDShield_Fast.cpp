@@ -77,7 +77,7 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
   _i2c.begin();
 
   // enable burst writes by disabling address increment
-  _i2c.byteMode();
+  //_i2c.byteMode();
 
   _i2c.pinMode(8, OUTPUT);
   _i2c.pinMode(6, OUTPUT);
@@ -239,21 +239,22 @@ void Adafruit_RGBLCDShield::noAutoscroll(void) {
 void Adafruit_RGBLCDShield::createChar(uint8_t location, uint8_t charmap[]) {
   location &= 0x7; // we only have 8 locations 0-7
   command(LCD_SETCGRAMADDR | (location << 3));
-  write(charmap, 8);
-  // for (int i = 0; i < 8; i++) {
-    // write(charmap[i]);
-  // }
+  // Note that this somehow does not work with burst mode:
+  // write(charmap, 8);
+  for (int i = 0; i < 8; i++) {
+    write(charmap[i]);
+  }
   command(LCD_SETDDRAMADDR); // unfortunately resets the location to 0,0
 }
 
 void Adafruit_RGBLCDShield::createCharPgm(uint8_t location, const uint8_t *charmapP) {
-  byte charmap[8];
   PGM_P p = reinterpret_cast<PGM_P>(charmapP);
   location &= 0x7; // we only have 8 locations 0-7
   command(LCD_SETCGRAMADDR | (location << 3));
-  for (int i=0; i<8; i++)
-    charmap[i] = pgm_read_byte(p++);
-  write(charmap, 8);
+  for (int i=0; i<8; i++) {
+    byte c = pgm_read_byte(p++);
+    write(c);
+  }
   command(LCD_SETDDRAMADDR);  // unfortunately resets the location to 0,0
 }
 
@@ -300,8 +301,6 @@ size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
       Wire.write(MCP23017_GPIOB);
     }
     Wire.write(out | 0x20);
-    Wire.write(out | 0x20);
-    Wire.write(out);
     Wire.write(out);
 
     out = out1;
@@ -314,14 +313,10 @@ size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
     // _i2c.writeGPIOB(out | 0x20);
     // _i2c.writeGPIOB(out);   
     Wire.write(out | 0x20);
-    Wire.write(out | 0x20);
     Wire.write(out);
-    c += 8;
-    if (c <= BUFFER_LENGTH - 8) {
-      Wire.write(out);
-    } else {
+    c += 4;
+    if (c >= BUFFER_LENGTH - 4) {
       // We only restart the transmission once the buffer is full.
-      // We don't need to repeat the last transmitted byte this time.
       Wire.endTransmission();
       c = 0;
     }
@@ -378,8 +373,6 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   Wire.beginTransmission(MCP23017_ADDRESS);
   Wire.write(MCP23017_GPIOB);
   Wire.write(out | 0x20);
-  Wire.write(out | 0x20);
-  Wire.write(out);
   Wire.write(out);
 
   out = out1;
@@ -392,10 +385,7 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   // _i2c.writeGPIOB(out | 0x20);
   // _i2c.writeGPIOB(out);
   Wire.write(out | 0x20);
-  Wire.write(out | 0x20);
   Wire.write(out);
-  // We don't need to repeat the last one
-  // Wire.write(out);
   Wire.endTransmission();
 }
 

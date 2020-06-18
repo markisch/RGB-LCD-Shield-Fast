@@ -59,6 +59,24 @@ void Adafruit_MCP23017::begin(uint8_t addr) {
   if ((TWCR & _BV(TWEN)) != _BV(TWEN))
     WIRE.begin();
 
+  // Caution: this changes all register locations, including the IOCON!
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(0x0A);  // hard-code register address:  IOCON in BANK=0 mode
+  wiresend(0x80);  // BANK=1, SEQOP=1 - Byte mode w/o sequential addressing
+  WIRE.endTransmission();
+
+  // If we were already in BANK=1 mode, we reset register OLATA to zero
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(0x0A);  // hard-code register address: OLATA in BANK=1 mode
+  wiresend(0x00);  // zero output latch
+  WIRE.endTransmission();
+
+  // Make sure we are in non-sequential mode
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_IOCONA);
+  wiresend(0x80 | 0x20);  // BANK=1, SEQOP=1 - Byte mode w/o sequential addressing
+  WIRE.endTransmission();
+
   // set defaults!
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
   wiresend(MCP23017_IODIRA);
@@ -273,7 +291,7 @@ void Adafruit_MCP23017::sequentialMode()
 {
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
   wiresend(MCP23017_IOCONB);
-  wiresend(0x00);
+  wiresend(0x80);
   WIRE.endTransmission();
 }
 
@@ -281,6 +299,6 @@ void Adafruit_MCP23017::byteMode()
 {
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
   wiresend(MCP23017_IOCONB);
-  wiresend(0x20);
+  wiresend(0x80 | 0x20);
   WIRE.endTransmission();
 }
