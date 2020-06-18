@@ -55,7 +55,9 @@ void Adafruit_MCP23017::begin(uint8_t addr) {
   }
   i2caddr = addr;
 
-  WIRE.begin();
+  // Only initialize wire interface if not yet done
+  if ((TWCR & _BV(TWEN)) != _BV(TWEN))
+    WIRE.begin();
 
   // set defaults!
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);

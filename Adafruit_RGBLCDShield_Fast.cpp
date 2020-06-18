@@ -29,6 +29,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <avr/io.h>
+#include <compat/twi.h>
 #ifdef __SAM3X8E__ // Arduino Due
 #define WIRE Wire1
 #else
@@ -68,7 +70,10 @@ Adafruit_RGBLCDShield::Adafruit_RGBLCDShield() {
 
 void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
                                   uint8_t dotsize) {
-  WIRE.begin();
+  // Only initialize wire interface if not yet done
+  if ((TWCR & _BV(TWEN)) != _BV(TWEN))
+    WIRE.begin();
+
   _i2c.begin();
 
   // enable burst writes by disabling address increment
