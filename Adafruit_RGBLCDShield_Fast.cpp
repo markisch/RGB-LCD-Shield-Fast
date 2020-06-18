@@ -256,6 +256,7 @@ inline void Adafruit_RGBLCDShield::write(uint8_t value) { send(value, HIGH); }
 size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
   size_t n = size;
   uint8_t out, out1;
+  uint8_t c = 0;
 
   _rs_state = HIGH;
   _rw_state = LOW;
@@ -277,8 +278,10 @@ size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
     // pulse enable
     // _i2c.writeGPIOB(out | 0x20);
     // _i2c.writeGPIOB(out);
-    Wire.beginTransmission(MCP23017_ADDRESS);
-    Wire.write(MCP23017_GPIOB);
+    if (c == 0) {
+      Wire.beginTransmission(MCP23017_ADDRESS);
+      Wire.write(MCP23017_GPIOB);
+    }
     Wire.write(out | 0x20);
     Wire.write(out | 0x20);
     Wire.write(out);
@@ -296,11 +299,17 @@ size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
     Wire.write(out | 0x20);
     Wire.write(out | 0x20);
     Wire.write(out);
-    // We don't need to repeat the last one
-    // Wire.write(out);
-    Wire.endTransmission();
+    c += 8;
+    if (c <= BUFFER_LENGTH - 8) {
+      Wire.write(out);
+    } else {
+      // We only restart the transmission once the buffer is full.
+      // We don't need to repeat the last transmitted byte this time.
+      Wire.endTransmission();
+      c = 0;
+    }
   }
-  // Wire.endTransmission();
+  if (c != 0) Wire.endTransmission();
   return n;
 }
 
