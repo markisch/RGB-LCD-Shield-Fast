@@ -168,6 +168,12 @@ public:
    */
   void createChar(uint8_t, uint8_t[]);
   /*!
+   * @brief High-level command that creates custom characters in CGRAM
+   * @param location Location in cgram to fill
+   * @param charmap[] Character map to use, data in PROGMEM
+   */
+  void createCharPgm(uint8_t location, const uint8_t *charmapP);
+  /*!
    * @brief High-level command that sets the location of the cursor
    * @param col Column to put the cursor in
    * @param row Row to put the cursor in

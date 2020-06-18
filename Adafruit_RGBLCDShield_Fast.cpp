@@ -239,10 +239,22 @@ void Adafruit_RGBLCDShield::noAutoscroll(void) {
 void Adafruit_RGBLCDShield::createChar(uint8_t location, uint8_t charmap[]) {
   location &= 0x7; // we only have 8 locations 0-7
   command(LCD_SETCGRAMADDR | (location << 3));
-  for (int i = 0; i < 8; i++) {
-    write(charmap[i]);
-  }
+  write(charmap, 8);
+  // for (int i = 0; i < 8; i++) {
+    // write(charmap[i]);
+  // }
   command(LCD_SETDDRAMADDR); // unfortunately resets the location to 0,0
+}
+
+void Adafruit_RGBLCDShield::createCharPgm(uint8_t location, const uint8_t *charmapP) {
+  byte charmap[8];
+  PGM_P p = reinterpret_cast<PGM_P>(charmapP);
+  location &= 0x7; // we only have 8 locations 0-7
+  command(LCD_SETCGRAMADDR | (location << 3));
+  for (int i=0; i<8; i++)
+    charmap[i] = pgm_read_byte(p++);
+  write(charmap, 8);
+  command(LCD_SETDDRAMADDR);  // unfortunately resets the location to 0,0
 }
 
 /*********** mid level commands, for sending data/cmds */
