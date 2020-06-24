@@ -155,12 +155,12 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
 /********** high level commands, for the user! */
 void Adafruit_RGBLCDShield::clear() {
   command(LCD_CLEARDISPLAY); // clear display, set cursor position to zero
-  delayMicroseconds(2000);   // this command takes a long time!
+  waitBusy();                // this command takes a long time!
 }
 
 void Adafruit_RGBLCDShield::home() {
   command(LCD_RETURNHOME); // set cursor position to zero
-  delayMicroseconds(2000); // this command takes a long time!
+  waitBusy();              // this command takes a long time!
 }
 
 void Adafruit_RGBLCDShield::setCursor(uint8_t col, uint8_t row) {
@@ -347,6 +347,53 @@ void Adafruit_RGBLCDShield::setBacklight(uint8_t status) {
 void Adafruit_RGBLCDShield::_pinMode(uint8_t p, uint8_t d) {
   // an i2c command
   _i2c.pinMode(p, d);
+}
+
+int Adafruit_RGBLCDShield::waitBusy() {
+  int n = 0;
+  _rs_state = LOW;
+  _rw_state = HIGH;
+
+  // Set data lines as input
+  // for (i = 0; i < 4; i++)
+    // pinMode(_data_pins[i], INPUT);
+  Wire.beginTransmission(MCP23017_ADDRESS);
+  Wire.write(MCP23017_IODIRB);
+  Wire.write(0x1e);
+  Wire.endTransmission();
+
+  Wire.beginTransmission(MCP23017_ADDRESS);
+  Wire.write(MCP23017_GPIOB);
+
+  const uint8_t out = _rw_mask;
+  uint8_t busy;
+  do {
+    Wire.write(out | _enable_mask);
+    Wire.endTransmission();
+
+    // Burst mode. No need to set address again.
+    Wire.requestFrom(MCP23017_ADDRESS, 1);
+    busy = Wire.read() & _data_mask[3];
+
+    Wire.beginTransmission(MCP23017_ADDRESS);
+    Wire.write(MCP23017_GPIOB);
+    Wire.write(out);
+    Wire.write(out | _enable_mask);
+    Wire.write(out);
+
+    n++;
+  } while (busy);
+
+  Wire.endTransmission();
+
+  // for (i = 0; i < 4; i++)
+    // pinMode(_data_pins[i], OUTPUT);
+  Wire.beginTransmission(MCP23017_ADDRESS);
+  Wire.write(MCP23017_IODIRB);
+  Wire.write(0x00);  // all output
+  Wire.endTransmission();
+
+  return n;
 }
 
 // write either command or data, with automatic 4/8-bit selection

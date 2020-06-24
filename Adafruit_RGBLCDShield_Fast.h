@@ -205,6 +205,8 @@ public:
    */
   uint8_t readButtons();
 
+  int waitBusy();
+
 private:
   void send(uint8_t, uint8_t);
   void write4bits(uint8_t);
