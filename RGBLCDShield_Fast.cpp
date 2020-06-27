@@ -1,7 +1,7 @@
 /*!
- * @file Adafruit_RGBLCDShield.cpp
+ * @file RGBLCDShield_Fast.cpp
  *
- * @mainpage Adafruit RGB LCD Shield Library
+ * @mainpage Fork of Adafruit RGB LCD Shield Library
  *
  * @section intro_sec Introduction
  *
@@ -18,12 +18,13 @@
  * @section author Author
  *
  * Written by Limor Fried/Ladyada for Adafruit Industries.
+ * Modified by Bastian Maerkisch.
  * @section license License
  *
  * BSD license, all text above must be included in any redistribution
  */
 
-#include "Adafruit_RGBLCDShield_Fast.h"
+#include "RGBLCDShield_Fast.h"
 
 #include <Wire.h>
 #include <inttypes.h>
@@ -62,13 +63,13 @@
 // can't assume that its in that state when a sketch starts (and the
 // RGBLCDShield constructor is called).
 
-Adafruit_RGBLCDShield::Adafruit_RGBLCDShield() {
+RGBLCDShield_Fast::RGBLCDShield_Fast() {
   _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
   // we can't begin() yet :(
 }
 
 
-void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
+void RGBLCDShield_Fast::begin(uint8_t cols, uint8_t lines,
                                   uint8_t dotsize) {
   // Only initialize wire interface if not yet done
   if ((TWCR & _BV(TWEN)) != _BV(TWEN))
@@ -153,17 +154,17 @@ void Adafruit_RGBLCDShield::begin(uint8_t cols, uint8_t lines,
 }
 
 /********** high level commands, for the user! */
-void Adafruit_RGBLCDShield::clear() {
+void RGBLCDShield_Fast::clear() {
   command(LCD_CLEARDISPLAY); // clear display, set cursor position to zero
   waitBusy();                // this command takes a long time!
 }
 
-void Adafruit_RGBLCDShield::home() {
+void RGBLCDShield_Fast::home() {
   command(LCD_RETURNHOME); // set cursor position to zero
   waitBusy();              // this command takes a long time!
 }
 
-void Adafruit_RGBLCDShield::setCursor(uint8_t col, uint8_t row) {
+void RGBLCDShield_Fast::setCursor(uint8_t col, uint8_t row) {
   int row_offsets[] = {0x00, 0x40, 0x14, 0x54};
   if (row > _numlines) {
     row = _numlines - 1; // we count rows starting w/0
@@ -173,70 +174,70 @@ void Adafruit_RGBLCDShield::setCursor(uint8_t col, uint8_t row) {
 }
 
 // Turn the display on/off (quickly)
-void Adafruit_RGBLCDShield::noDisplay() {
+void RGBLCDShield_Fast::noDisplay() {
   _displaycontrol &= ~LCD_DISPLAYON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
-void Adafruit_RGBLCDShield::display() {
+void RGBLCDShield_Fast::display() {
   _displaycontrol |= LCD_DISPLAYON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // Turns the underline cursor on/off
-void Adafruit_RGBLCDShield::noCursor() {
+void RGBLCDShield_Fast::noCursor() {
   _displaycontrol &= ~LCD_CURSORON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
-void Adafruit_RGBLCDShield::cursor() {
+void RGBLCDShield_Fast::cursor() {
   _displaycontrol |= LCD_CURSORON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // Turn on and off the blinking cursor
-void Adafruit_RGBLCDShield::noBlink() {
+void RGBLCDShield_Fast::noBlink() {
   _displaycontrol &= ~LCD_BLINKON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
-void Adafruit_RGBLCDShield::blink() {
+void RGBLCDShield_Fast::blink() {
   _displaycontrol |= LCD_BLINKON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // These commands scroll the display without changing the RAM
-void Adafruit_RGBLCDShield::scrollDisplayLeft(void) {
+void RGBLCDShield_Fast::scrollDisplayLeft(void) {
   command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
 }
-void Adafruit_RGBLCDShield::scrollDisplayRight(void) {
+void RGBLCDShield_Fast::scrollDisplayRight(void) {
   command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
 }
 
 // This is for text that flows Left to Right
-void Adafruit_RGBLCDShield::leftToRight(void) {
+void RGBLCDShield_Fast::leftToRight(void) {
   _displaymode |= LCD_ENTRYLEFT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // This is for text that flows Right to Left
-void Adafruit_RGBLCDShield::rightToLeft(void) {
+void RGBLCDShield_Fast::rightToLeft(void) {
   _displaymode &= ~LCD_ENTRYLEFT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // This will 'right justify' text from the cursor
-void Adafruit_RGBLCDShield::autoscroll(void) {
+void RGBLCDShield_Fast::autoscroll(void) {
   _displaymode |= LCD_ENTRYSHIFTINCREMENT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // This will 'left justify' text from the cursor
-void Adafruit_RGBLCDShield::noAutoscroll(void) {
+void RGBLCDShield_Fast::noAutoscroll(void) {
   _displaymode &= ~LCD_ENTRYSHIFTINCREMENT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // Allows us to fill the first 8 CGRAM locations
 // with custom characters
-void Adafruit_RGBLCDShield::createChar(uint8_t location, uint8_t charmap[]) {
+void RGBLCDShield_Fast::createChar(uint8_t location, uint8_t charmap[]) {
   location &= 0x7; // we only have 8 locations 0-7
   command(LCD_SETCGRAMADDR | (location << 3));
   // Note that this somehow does not work with burst mode:
@@ -247,7 +248,7 @@ void Adafruit_RGBLCDShield::createChar(uint8_t location, uint8_t charmap[]) {
   command(LCD_SETDDRAMADDR); // unfortunately resets the location to 0,0
 }
 
-void Adafruit_RGBLCDShield::createCharPgm(uint8_t location, const uint8_t *charmapP) {
+void RGBLCDShield_Fast::createCharPgm(uint8_t location, const uint8_t *charmapP) {
   PGM_P p = reinterpret_cast<PGM_P>(charmapP);
   location &= 0x7; // we only have 8 locations 0-7
   command(LCD_SETCGRAMADDR | (location << 3));
@@ -260,18 +261,22 @@ void Adafruit_RGBLCDShield::createCharPgm(uint8_t location, const uint8_t *charm
 
 /*********** mid level commands, for sending data/cmds */
 
-inline void Adafruit_RGBLCDShield::command(uint8_t value) { send(value, LOW); }
+inline void RGBLCDShield_Fast::command(uint8_t value) {
+  send(value, LOW);
+}
 
 #if ARDUINO >= 100
-inline size_t Adafruit_RGBLCDShield::write(uint8_t value) {
+inline size_t RGBLCDShield_Fast::write(uint8_t value) {
   send(value, HIGH);
   return 1;
 }
 #else
-inline void Adafruit_RGBLCDShield::write(uint8_t value) { send(value, HIGH); }
+inline void RGBLCDShield_Fast::write(uint8_t value) {
+  send(value, HIGH);
+}
 #endif
 
-size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
+size_t RGBLCDShield_Fast::write(const uint8_t *buffer, size_t size) {
   size_t n = size;
   uint8_t out, out1;
   uint8_t c = 0;
@@ -329,13 +334,13 @@ size_t Adafruit_RGBLCDShield::write(const uint8_t *buffer, size_t size) {
 /************ low level data pushing commands **********/
 
 // little wrapper for i/o writes
-void Adafruit_RGBLCDShield::_digitalWrite(uint8_t p, uint8_t d) {
+void RGBLCDShield_Fast::_digitalWrite(uint8_t p, uint8_t d) {
   // an i2c command
   _i2c.digitalWrite(p, d);
 }
 
 // Allows to set the backlight, if the LCD backpack is used
-void Adafruit_RGBLCDShield::setBacklight(uint8_t status) {
+void RGBLCDShield_Fast::setBacklight(uint8_t status) {
   // check if i2c or SPI
   _i2c.digitalWrite(8, ~(status >> 2) & 0x1);
   _i2c.digitalWrite(7, ~(status >> 1) & 0x1);
@@ -344,12 +349,12 @@ void Adafruit_RGBLCDShield::setBacklight(uint8_t status) {
 }
 
 // little wrapper for i/o directions
-void Adafruit_RGBLCDShield::_pinMode(uint8_t p, uint8_t d) {
+void RGBLCDShield_Fast::_pinMode(uint8_t p, uint8_t d) {
   // an i2c command
   _i2c.pinMode(p, d);
 }
 
-int Adafruit_RGBLCDShield::waitBusy() {
+int RGBLCDShield_Fast::waitBusy() {
   int n = 0;
   _rs_state = LOW;
   _rw_state = HIGH;
@@ -397,7 +402,7 @@ int Adafruit_RGBLCDShield::waitBusy() {
 }
 
 // write either command or data, with automatic 4/8-bit selection
-void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
+void RGBLCDShield_Fast::send(uint8_t value, uint8_t mode) {
   uint8_t out, out1;
 
   _rs_state = mode;
@@ -436,7 +441,7 @@ void Adafruit_RGBLCDShield::send(uint8_t value, uint8_t mode) {
   Wire.endTransmission();
 }
 
-void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
+void RGBLCDShield_Fast::write4bits(uint8_t value) {
   uint8_t out;
 
   // all LCD pins are on port B and we know them all already
@@ -463,7 +468,7 @@ void Adafruit_RGBLCDShield::write4bits(uint8_t value) {
   _i2c.writeGPIOB(out);
 }
 
-uint8_t Adafruit_RGBLCDShield::readButtons(void) {
+uint8_t RGBLCDShield_Fast::readButtons(void) {
   // all buttons are on port A: read all in one go
   return (~_i2c.readGPIOA() & 0x1f);
 }

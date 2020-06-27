@@ -1,13 +1,13 @@
 /*!
- * @file Adafruit_RGBLCDShield.h
+ * @file RGBLCDShield_Fast.h
  */
 
-#ifndef Adafruit_RGBLCDShield_h
-#define Adafruit_RGBLCDShield_h
+#ifndef RGBLCDShield_Fast_h
+#define RGBLCDShield_Fast_h
 
 #include "Print.h"
 #include <inttypes.h>
-#include <utility/Adafruit_MCP23017.h>
+#include <utility/MCP23017.h>
 
 // commands
 #define LCD_CLEARDISPLAY 0x01 //!< Clear display, set cursor position to zero
@@ -64,9 +64,9 @@ using namespace arduino; //!< MEGA AVR architecture uses the arduino namespace
 /*!
  * @brief Base class for RGB LCD shield
  */
-class Adafruit_RGBLCDShield : public Print {
+class RGBLCDShield_Fast : public Print {
 public:
-  Adafruit_RGBLCDShield();
+  RGBLCDShield_Fast();
 
   /*!
    * @brief RGB LCD shield constructor
@@ -238,7 +238,7 @@ private:
   uint8_t _numlines, _currline;
   uint8_t _rw_state, _enable_state, _rs_state;
   uint8_t _backlight;
-  Adafruit_MCP23017 _i2c;
+  MCP23017 _i2c;
 };
 
 #endif

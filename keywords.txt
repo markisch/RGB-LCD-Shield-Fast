@@ -6,7 +6,7 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-LiquidCrystal	KEYWORD1
+RGBLCDShield_Fast	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -30,7 +30,9 @@ rightToLeft	KEYWORD2
 scrollDisplayLeft	KEYWORD2
 scrollDisplayRight	KEYWORD2
 createChar	KEYWORD2
+createCharPgm	KEYWORD2
 setBacklight	KEYWORD2
+command	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
