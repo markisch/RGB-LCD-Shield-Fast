@@ -95,7 +95,7 @@ void RGBLCDShield_Fast::begin(uint8_t cols, uint8_t lines,
 
   for (uint8_t i = 0; i < 5; i++) {
     _i2c.pinMode(_button_pins[i], INPUT);
-    _i2c.pullUp(_button_pins[i], 1);
+    _i2c.pullUp(_button_pins[i], HIGH);
   }
 
   if (lines > 1) {

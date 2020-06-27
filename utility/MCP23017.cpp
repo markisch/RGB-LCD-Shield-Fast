@@ -54,9 +54,7 @@ static inline uint8_t wirerecv(void) {
 ////////////////////////////////////////////////////////////////////////////////
 
 MCP23017::MCP23017() {
-  mode = 0;
-  // Just set register variables.
-  normalMode();
+  mode = -1;  // we just don't know yet
 }
 
 
@@ -71,6 +69,30 @@ void MCP23017::begin(uint8_t addr) {
   if ((TWCR & _BV(TWEN)) != _BV(TWEN))
 #endif
     WIRE.begin();
+
+  // We may be in "burst" or normal mode. Revert to bank=0, seq=0.
+  // Assume we are in BANK=1 mode. Read register.
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_BANK_IOCONA);
+  WIRE.endTransmission();
+  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
+  uint8_t val = wirerecv();
+  // Clear BANK bit. This might also be GPINTENB.GPINT7 if we are in BANK=0 mode.
+  val &= 0x7f;
+  // Write back to make sure we are in BANK=0 mode
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_BANK_IOCONA);
+  wiresend(val);
+  WIRE.endTransmission();
+  // Finally, we also clear the increment address bit:
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(MCP23017_SEQ_IOCONA);
+  wiresend(0x00);
+  WIRE.endTransmission();
+  // We are in mode == 0 now.
+  mode = 0;
+  // Update register variables.
+  normalMode();
 
   // set defaults!
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
@@ -304,11 +326,17 @@ uint8_t MCP23017::digitalRead(uint8_t p) {
 void MCP23017::normalMode()
 {
   // We turn on sequential mode and disable banking.
-  if (mode != 0) { 
+  if (mode != 0) {
+    // First, we assume we are in BANK=1 mode.
     // Caution: this changes all register locations, including the IOCON!
     WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
     wiresend(MCP23017_BANK_IOCONA);  // IOCON in BANK=1 mode
     wiresend(0x00);  // BANK=1, SEQOP=0
+    WIRE.endTransmission();
+
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(MCP23017_BANK_IOCONB);
+    wiresend(0x00);
     WIRE.endTransmission();
   }
   mode = 0;
@@ -345,26 +373,24 @@ void MCP23017::burstMode()
   // This allows repeated access to the same register within a single I2C transition.
 
   if (mode != 1) {
+    // First, we assume we are in BANK=0 mode.
     // Caution: this changes all register locations, including the IOCON!
     WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
     wiresend(MCP23017_SEQ_IOCONA);  // IOCON in BANK=0 mode
     wiresend(0x80);  // BANK=1, SEQOP=0
     WIRE.endTransmission();
-
 /*
-    // If we were already in BANK=1 mode, we reset register OLATA to zero
+    // If we were already in BANK=1 mode, we reset register OLATA to zero.
     WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
     wiresend(MCP23017_SEQ_OLATA);  // hard-code register address: OLATA in BANK=1 mode
     wiresend(0x00);  // zero output latch
     WIRE.endTransmission();
 */
-
     // Make sure we are in non-sequential mode
     WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
     wiresend(MCP23017_BANK_IOCONA);
     wiresend(0x80 | 0x20);  // BANK=1, SEQOP=1 - Byte mode w/o sequential addressing
     WIRE.endTransmission();
-
 /*
     WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
     wiresend(MCP23017_BANK_IOCONB);
