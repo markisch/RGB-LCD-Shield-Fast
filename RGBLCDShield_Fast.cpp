@@ -71,14 +71,16 @@ RGBLCDShield_Fast::RGBLCDShield_Fast() {
 
 void RGBLCDShield_Fast::begin(uint8_t cols, uint8_t lines,
                                   uint8_t dotsize) {
+#ifdef __AVR__
   // Only initialize wire interface if not yet done
   if ((TWCR & _BV(TWEN)) != _BV(TWEN))
+#endif
     WIRE.begin();
 
   _i2c.begin();
 
-  // enable burst writes by disabling address increment
-  //_i2c.byteMode();
+  // enable burst writes by disabling address increment (requires bank mode)
+  _i2c.burstMode();
 
   _i2c.pinMode(8, OUTPUT);
   _i2c.pinMode(6, OUTPUT);
@@ -303,7 +305,7 @@ size_t RGBLCDShield_Fast::write(const uint8_t *buffer, size_t size) {
     // _i2c.writeGPIOB(out);
     if (c == 0) {
       Wire.beginTransmission(MCP23017_ADDRESS);
-      Wire.write(MCP23017_GPIOB);
+      Wire.write(MCP23017_BANK_GPIOB);
     }
     Wire.write(out | _enable_mask);
     Wire.write(out);
@@ -363,12 +365,12 @@ int RGBLCDShield_Fast::waitBusy() {
   // for (i = 0; i < 4; i++)
     // pinMode(_data_pins[i], INPUT);
   Wire.beginTransmission(MCP23017_ADDRESS);
-  Wire.write(MCP23017_IODIRB);
+  Wire.write(MCP23017_BANK_IODIRB);
   Wire.write(0x1e);
   Wire.endTransmission();
 
   Wire.beginTransmission(MCP23017_ADDRESS);
-  Wire.write(MCP23017_GPIOB);
+  Wire.write(MCP23017_BANK_GPIOB);
 
   const uint8_t out = _rw_mask;
   uint8_t busy;
@@ -381,7 +383,7 @@ int RGBLCDShield_Fast::waitBusy() {
     busy = Wire.read() & _data_mask[3];
 
     Wire.beginTransmission(MCP23017_ADDRESS);
-    Wire.write(MCP23017_GPIOB);
+    Wire.write(MCP23017_BANK_GPIOB);
     Wire.write(out);
     Wire.write(out | _enable_mask);
     Wire.write(out);
@@ -394,7 +396,7 @@ int RGBLCDShield_Fast::waitBusy() {
   // for (i = 0; i < 4; i++)
     // pinMode(_data_pins[i], OUTPUT);
   Wire.beginTransmission(MCP23017_ADDRESS);
-  Wire.write(MCP23017_IODIRB);
+  Wire.write(MCP23017_BANK_IODIRB);
   Wire.write(0x00);  // all output
   Wire.endTransmission();
 
@@ -423,7 +425,7 @@ void RGBLCDShield_Fast::send(uint8_t value, uint8_t mode) {
   // _i2c.writeGPIOB(out | _enable_mask);
   // _i2c.writeGPIOB(out);
   Wire.beginTransmission(MCP23017_ADDRESS);
-  Wire.write(MCP23017_GPIOB);
+  Wire.write(MCP23017_BANK_GPIOB);
   Wire.write(out | _enable_mask);
   Wire.write(out);
 

@@ -53,42 +53,33 @@ static inline uint8_t wirerecv(void) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+MCP23017::MCP23017() {
+  mode = 0;
+  // Just set register variables.
+  normalMode();
+}
+
+
 void MCP23017::begin(uint8_t addr) {
   if (addr > 7) {
     addr = 7;
   }
   i2caddr = addr;
 
+#ifdef __AVR__
   // Only initialize wire interface if not yet done
   if ((TWCR & _BV(TWEN)) != _BV(TWEN))
+#endif
     WIRE.begin();
-
-  // Caution: this changes all register locations, including the IOCON!
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(0x0A);  // hard-code register address:  IOCON in BANK=0 mode
-  wiresend(0x80);  // BANK=1, SEQOP=1 - Byte mode w/o sequential addressing
-  WIRE.endTransmission();
-
-  // If we were already in BANK=1 mode, we reset register OLATA to zero
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(0x0A);  // hard-code register address: OLATA in BANK=1 mode
-  wiresend(0x00);  // zero output latch
-  WIRE.endTransmission();
-
-  // Make sure we are in non-sequential mode
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_IOCONA);
-  wiresend(0x80 | 0x20);  // BANK=1, SEQOP=1 - Byte mode w/o sequential addressing
-  WIRE.endTransmission();
 
   // set defaults!
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_IODIRA);
+  wiresend(IODIRA);
   wiresend(0xFF); // all inputs on port A
   WIRE.endTransmission();
 
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_IODIRB);
+  wiresend(IODIRB);
   wiresend(0xFF); // all inputs on port B
   WIRE.endTransmission();
 }
@@ -108,9 +99,9 @@ void MCP23017::pinMode(uint8_t p, uint8_t d) {
     return;
 
   if (p < 8)
-    iodiraddr = MCP23017_IODIRA;
+    iodiraddr = IODIRA;
   else {
-    iodiraddr = MCP23017_IODIRB;
+    iodiraddr = IODIRB;
     p -= 8;
   }
 
@@ -139,7 +130,7 @@ void MCP23017::pinMode(uint8_t p, uint8_t d) {
 uint8_t MCP23017::readGPIOA() {
   // read the current GPIO output latches
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_GPIOA);
+  wiresend(GPIOA);
   WIRE.endTransmission();
 
   WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
@@ -149,7 +140,7 @@ uint8_t MCP23017::readGPIOA() {
 uint8_t MCP23017::readGPIOB() {
   // read the current GPIO output latches
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_GPIOB);
+  wiresend(GPIOB);
   WIRE.endTransmission();
 
   WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
@@ -162,38 +153,53 @@ uint16_t MCP23017::readGPIOAB() {
 
   // read the current GPIO output latches
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_GPIOA);
+  wiresend(GPIOA);
   WIRE.endTransmission();
 
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 2);
-  a = wirerecv();
-  ba = wirerecv();
+  if (mode == 0) {
+    WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 2);
+    a = wirerecv();
+    ba = wirerecv();
+  } else {
+    WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
+    a = wirerecv();
+
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(GPIOB);
+    WIRE.endTransmission();
+    WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
+    ba = wirerecv();
+  }
   ba <<= 8;
   ba |= a;
-
   return ba;
 }
 
 void MCP23017::writeGPIOA(uint8_t a) {
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_GPIOA);
+  wiresend(GPIOA);
   wiresend(a);
   WIRE.endTransmission();
 }
 
 void MCP23017::writeGPIOB(uint8_t b) {
   WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_GPIOB);
+  wiresend(GPIOB);
   wiresend(b);
   WIRE.endTransmission();
 }
 
 void MCP23017::writeGPIOAB(uint16_t ba) {
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_GPIOA);
-  wiresend(ba & 0xFF);
-  wiresend(ba >> 8);
-  WIRE.endTransmission();
+  if (mode == 0) {
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(GPIOA);
+    wiresend(ba & 0xFF);
+    wiresend(ba >> 8);
+    WIRE.endTransmission();
+  } else {
+    writeGPIOA(ba & 0xFF);
+    writeGPIOB(ba >> 8);
+  }
 }
 
 void MCP23017::digitalWrite(uint8_t p, uint8_t d) {
@@ -205,11 +211,11 @@ void MCP23017::digitalWrite(uint8_t p, uint8_t d) {
     return;
 
   if (p < 8) {
-    olataddr = MCP23017_OLATA;
-    gpioaddr = MCP23017_GPIOA;
+    olataddr = OLATA;
+    gpioaddr = GPIOA;
   } else {
-    olataddr = MCP23017_OLATB;
-    gpioaddr = MCP23017_GPIOB;
+    olataddr = OLATB;
+    gpioaddr = GPIOB;
     p -= 8;
   }
 
@@ -244,9 +250,9 @@ void MCP23017::pullUp(uint8_t p, uint8_t d) {
     return;
 
   if (p < 8)
-    gppuaddr = MCP23017_GPPUA;
+    gppuaddr = GPPUA;
   else {
-    gppuaddr = MCP23017_GPPUB;
+    gppuaddr = GPPUB;
     p -= 8;
   }
 
@@ -280,9 +286,9 @@ uint8_t MCP23017::digitalRead(uint8_t p) {
     return 0;
 
   if (p < 8)
-    gpioaddr = MCP23017_GPIOA;
+    gpioaddr = GPIOA;
   else {
-    gpioaddr = MCP23017_GPIOB;
+    gpioaddr = GPIOB;
     p -= 8;
   }
 
@@ -295,18 +301,101 @@ uint8_t MCP23017::digitalRead(uint8_t p) {
   return (wirerecv() >> p) & 0x1;
 }
 
-void MCP23017::sequentialMode()
+void MCP23017::normalMode()
 {
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_IOCONB);
-  wiresend(0x80);
-  WIRE.endTransmission();
+  // We turn on sequential mode and disable banking.
+  if (mode != 0) { 
+    // Caution: this changes all register locations, including the IOCON!
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(MCP23017_BANK_IOCONA);  // IOCON in BANK=1 mode
+    wiresend(0x00);  // BANK=1, SEQOP=0
+    WIRE.endTransmission();
+  }
+  mode = 0;
+
+  // update register addresses
+  IODIRA = MCP23017_SEQ_IODIRA;
+  IPOLA = MCP23017_SEQ_IPOLA;
+  GPINTENA = MCP23017_SEQ_GPINTENA;
+  DEFVALA = MCP23017_SEQ_DEFVALA;
+  INTCONA = MCP23017_SEQ_INTCONA;
+  IOCONA = MCP23017_SEQ_IOCONA;
+  GPPUA = MCP23017_SEQ_GPPUA;
+  INTFA = MCP23017_SEQ_INTFA;
+  INTCAPA = MCP23017_SEQ_INTCAPA;
+  GPIOA = MCP23017_SEQ_GPIOA;
+  OLATA = MCP23017_SEQ_OLATA;
+
+  IODIRB = MCP23017_SEQ_IODIRB;
+  IPOLB = MCP23017_SEQ_IPOLB;
+  GPINTENB = MCP23017_SEQ_GPINTENB;
+  DEFVALB = MCP23017_SEQ_DEFVALB;
+  INTCONB = MCP23017_SEQ_INTCONB;
+  IOCONB = MCP23017_SEQ_IOCONB;
+  GPPUB = MCP23017_SEQ_GPPUB;
+  INTFB = MCP23017_SEQ_INTFB;
+  INTCAPB = MCP23017_SEQ_INTCAPB;
+  GPIOB = MCP23017_SEQ_GPIOB;
+  OLATB = MCP23017_SEQ_OLATB;
 }
 
-void MCP23017::byteMode()
+void MCP23017::burstMode()
 {
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_IOCONB);
-  wiresend(0x80 | 0x20);
-  WIRE.endTransmission();
+  // Turn off sequential mode and activate banking.
+  // This allows repeated access to the same register within a single I2C transition.
+
+  if (mode != 1) {
+    // Caution: this changes all register locations, including the IOCON!
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(MCP23017_SEQ_IOCONA);  // IOCON in BANK=0 mode
+    wiresend(0x80);  // BANK=1, SEQOP=0
+    WIRE.endTransmission();
+
+/*
+    // If we were already in BANK=1 mode, we reset register OLATA to zero
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(MCP23017_SEQ_OLATA);  // hard-code register address: OLATA in BANK=1 mode
+    wiresend(0x00);  // zero output latch
+    WIRE.endTransmission();
+*/
+
+    // Make sure we are in non-sequential mode
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(MCP23017_BANK_IOCONA);
+    wiresend(0x80 | 0x20);  // BANK=1, SEQOP=1 - Byte mode w/o sequential addressing
+    WIRE.endTransmission();
+
+/*
+    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+    wiresend(MCP23017_BANK_IOCONB);
+    wiresend(0x80 | 0x20);
+    WIRE.endTransmission();
+*/
+  }
+  mode = 1;
+
+  // update register addresses
+  IODIRA = MCP23017_BANK_IODIRA;
+  IPOLA = MCP23017_BANK_IPOLA;
+  GPINTENA = MCP23017_BANK_GPINTENA;
+  DEFVALA = MCP23017_BANK_DEFVALA;
+  INTCONA = MCP23017_BANK_INTCONA;
+  IOCONA = MCP23017_BANK_IOCONA;
+  GPPUA = MCP23017_BANK_GPPUA;
+  INTFA = MCP23017_BANK_INTFA;
+  INTCAPA = MCP23017_BANK_INTCAPA;
+  GPIOA = MCP23017_BANK_GPIOA;
+  OLATA = MCP23017_BANK_OLATA;
+
+  IODIRB = MCP23017_BANK_IODIRB;
+  IPOLB = MCP23017_BANK_IPOLB;
+  GPINTENB = MCP23017_BANK_GPINTENB;
+  DEFVALB = MCP23017_BANK_DEFVALB;
+  INTCONB = MCP23017_BANK_INTCONB;
+  IOCONB = MCP23017_BANK_IOCONB;
+  GPPUB = MCP23017_BANK_GPPUB;
+  INTFB = MCP23017_BANK_INTFB;
+  INTCAPB = MCP23017_BANK_INTCAPB;
+  GPIOB = MCP23017_BANK_GPIOB;
+  OLATB = MCP23017_BANK_OLATB;
 }
