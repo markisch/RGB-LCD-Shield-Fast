@@ -1,5 +1,3 @@
-# Adafruit RGB LCD Shield Library [![Build Status](https://github.com/adafruit/Adafruit-RGB-LCD-Shield-Library/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/Adafruit-RGB-LCD-Shield-Library/actions)[![Documentation](https://github.com/adafruit/ci-arduino/blob/master/assets/doxygen_badge.svg)](http://adafruit.github.io/Adafruit-RGB-LCD-Shield-Library/html/index.html)
-
 This is a fork of the original library for the Adafruit RGB 16x2 LCD Shield.  This shield uses a powerful MCP23017 I2C GPIO-expander.  But the original library is ludicrously slow.
 
 This fork uses optimized I2C access to obtain a more than 10-fold speed increase:  
