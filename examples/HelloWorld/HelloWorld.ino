@@ -38,13 +38,14 @@ void setup() {
   // Print a message to the LCD. We track how long it takes since
   // this library has been optimized a bit and we're proud of it :)
   int time = millis();
-  lcd.print("Hello, world!");
+  lcd.print(F("Hello, world!"));
   time = millis() - time;
-  Serial.print("Took "); Serial.print(time); Serial.println(" ms");
+  Serial.print(F("Took ")); Serial.print(time); Serial.println(F(" ms"));
   lcd.setBacklight(WHITE);
 }
 
 uint8_t i=0;
+
 void loop() {
   // set the cursor to column 0, line 1
   // (note: line 1 is the second row, since counting begins with 0):
@@ -54,38 +55,43 @@ void loop() {
 
   uint8_t buttons = lcd.readButtons();
 
-  if (buttons) {
-    lcd.clear();
+  if (buttons != i) {
+    i = buttons;
+    lcd.setCursor(0,0);
+    lcd.print(F("                "));
     lcd.setCursor(0,0);
     if (buttons & BUTTON_UP) {
-      lcd.print("UP ");
+      lcd.print(F("UP "));
 #ifdef RGB_BACKLIGHT      
       lcd.setBacklight(RED);
 #endif
     }
     if (buttons & BUTTON_DOWN) {
-      lcd.print("DOWN ");
+      lcd.print(F("DOWN "));
 #ifdef RGB_BACKLIGHT      
       lcd.setBacklight(YELLOW);
 #endif
     }
     if (buttons & BUTTON_LEFT) {
-      lcd.print("LEFT ");
+      lcd.print(F("LEFT "));
 #ifdef RGB_BACKLIGHT      
       lcd.setBacklight(GREEN);
 #endif
     }
     if (buttons & BUTTON_RIGHT) {
-      lcd.print("RIGHT ");
+      lcd.print(F("RIGHT "));
 #ifdef RGB_BACKLIGHT      
       lcd.setBacklight(TEAL);
 #endif
     }
     if (buttons & BUTTON_SELECT) {
-      lcd.print("SELECT ");
+      lcd.print(F("SELECT "));
 #ifdef RGB_BACKLIGHT      
       lcd.setBacklight(VIOLET);
 #endif
+    }
+    if (buttons == 0) {
+      lcd.print(F("(No key)"));
     }
   }
 }
