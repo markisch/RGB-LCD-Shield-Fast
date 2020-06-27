@@ -57,7 +57,6 @@ MCP23017::MCP23017() {
   mode = -1;  // we just don't know yet
 }
 
-
 void MCP23017::begin(uint8_t addr) {
   if (addr > 7) {
     addr = 7;
@@ -105,8 +104,6 @@ void MCP23017::begin(uint8_t addr) {
   wiresend(0xFF); // all inputs on port B
   WIRE.endTransmission();
 }
-
-void Adafruit_MCP23017::begin(void) { begin(0); }
 
 void MCP23017::begin(void) {
   begin(0);
@@ -194,6 +191,7 @@ uint16_t MCP23017::readGPIOAB() {
   }
   ba <<= 8;
   ba |= a;
+
   return ba;
 }
 
@@ -323,8 +321,7 @@ uint8_t MCP23017::digitalRead(uint8_t p) {
   return (wirerecv() >> p) & 0x1;
 }
 
-void MCP23017::normalMode()
-{
+void MCP23017::normalMode() {
   // We turn on sequential mode and disable banking.
   if (mode != 0) {
     // First, we assume we are in BANK=1 mode.
@@ -367,8 +364,7 @@ void MCP23017::normalMode()
   OLATB = MCP23017_SEQ_OLATB;
 }
 
-void MCP23017::burstMode()
-{
+void MCP23017::burstMode() {
   // Turn off sequential mode and activate banking.
   // This allows repeated access to the same register within a single I2C transition.
 

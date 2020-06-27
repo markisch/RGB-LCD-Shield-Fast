@@ -10,7 +10,7 @@
  * ---------> http://www.adafruit.com/products/714
  *
  * The shield uses I2C to communicate, 2 pins are required to
- * interface
+ * interface. This fork is significantly faster than the original.
  * Adafruit invests time and resources providing this open source code,
  * please support Adafruit and open-source hardware by purchasing
  * products from Adafruit!
@@ -76,7 +76,6 @@ void RGBLCDShield_Fast::begin(uint8_t cols, uint8_t lines,
   if ((TWCR & _BV(TWEN)) != _BV(TWEN))
 #endif
     WIRE.begin();
-
   _i2c.begin();
 
   // enable burst writes by disabling address increment (requires bank mode)
@@ -218,7 +217,6 @@ void RGBLCDShield_Fast::leftToRight(void) {
   _displaymode |= LCD_ENTRYLEFT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
-
 // This is for text that flows Right to Left
 void RGBLCDShield_Fast::rightToLeft(void) {
   _displaymode &= ~LCD_ENTRYLEFT;
@@ -230,7 +228,6 @@ void RGBLCDShield_Fast::autoscroll(void) {
   _displaymode |= LCD_ENTRYSHIFTINCREMENT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
-
 // This will 'left justify' text from the cursor
 void RGBLCDShield_Fast::noAutoscroll(void) {
   _displaymode &= ~LCD_ENTRYSHIFTINCREMENT;
