@@ -41,6 +41,10 @@ public:
   void normalMode();
   void burstMode();
 
+  uint8_t readRegister(uint8_t);
+  void writeRegister(uint8_t, uint8_t);
+  void updateRegister(uint8_t, uint8_t, bool);
+
 private:
   uint8_t i2caddr;
   uint8_t mode;  // mode == 0:  auto-increment address, non-banked

@@ -70,39 +70,21 @@ void MCP23017::begin(uint8_t addr) {
     WIRE.begin();
 
   // We may be in "burst" or normal mode. Revert to bank=0, seq=0.
-  // Assume we are in BANK=1 mode. Read register.
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_BANK_IOCONA);
-  WIRE.endTransmission();
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
-  uint8_t val = wirerecv();
+  // Assume we are in BANK=1 mode:
   // Clear BANK bit. This might also be GPINTENB.GPINT7 if we are in BANK=0 mode.
-  val &= 0x7f;
-  // Write back to make sure we are in BANK=0 mode
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_BANK_IOCONA);
-  wiresend(val);
-  WIRE.endTransmission();
+  updateRegister(MCP23017_BANK_IOCONA, 0x80, false);
+
   // Finally, we also clear the increment address bit:
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(MCP23017_SEQ_IOCONA);
-  wiresend(0x00);
-  WIRE.endTransmission();
+  writeRegister(MCP23017_SEQ_IOCONA, 0x00);
+
   // We are in mode == 0 now.
   mode = 0;
   // Update register variables.
   normalMode();
 
   // set defaults!
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(IODIRA);
-  wiresend(0xFF); // all inputs on port A
-  WIRE.endTransmission();
-
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(IODIRB);
-  wiresend(0xFF); // all inputs on port B
-  WIRE.endTransmission();
+  writeRegister(IODIRA, 0xff); // all inputs on port A
+  writeRegister(IODIRB, 0xff); // all inputs on port B
 }
 
 void MCP23017::begin(void) {
@@ -110,7 +92,6 @@ void MCP23017::begin(void) {
 }
 
 void MCP23017::pinMode(uint8_t p, uint8_t d) {
-  uint8_t iodir;
   uint8_t iodiraddr;
 
   // only 16 bits!
@@ -124,46 +105,18 @@ void MCP23017::pinMode(uint8_t p, uint8_t d) {
     p -= 8;
   }
 
-  // read the current IODIR
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(iodiraddr);
-  WIRE.endTransmission();
-
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
-  iodir = wirerecv();
-
-  // set the pin and direction
-  if (d == INPUT) {
-    iodir |= 1 << p;
-  } else {
-    iodir &= ~(1 << p);
-  }
-
-  // write the new IODIR
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(iodiraddr);
-  wiresend(iodir);
-  WIRE.endTransmission();
+  // set pin direction
+  updateRegister(iodiraddr, (1 << p), (d == INPUT));
 }
 
 uint8_t MCP23017::readGPIOA() {
   // read the current GPIO output latches
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(GPIOA);
-  WIRE.endTransmission();
-
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
-  return wirerecv();
+  return readRegister(GPIOA);
 }
 
 uint8_t MCP23017::readGPIOB() {
   // read the current GPIO output latches
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(GPIOB);
-  WIRE.endTransmission();
-
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
-  return wirerecv();
+  return readRegister(GPIOB);
 }
 
 uint16_t MCP23017::readGPIOAB() {
@@ -196,17 +149,11 @@ uint16_t MCP23017::readGPIOAB() {
 }
 
 void MCP23017::writeGPIOA(uint8_t a) {
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(GPIOA);
-  wiresend(a);
-  WIRE.endTransmission();
+  writeRegister(GPIOA, a);
 }
 
 void MCP23017::writeGPIOB(uint8_t b) {
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(GPIOB);
-  wiresend(b);
-  WIRE.endTransmission();
+  writeRegister(GPIOB, b);
 }
 
 void MCP23017::writeGPIOAB(uint16_t ba) {
@@ -239,13 +186,9 @@ void MCP23017::digitalWrite(uint8_t p, uint8_t d) {
     p -= 8;
   }
 
-  // read the current GPIO output latches
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(olataddr);
-  WIRE.endTransmission();
-
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
-  gpio = wirerecv();
+  // update GPIO output latches
+  //updateRegister(olataddr, (1 << p), (d == HIGH))
+  gpio = readRegister(olataddr);
 
   // set the pin and direction
   if (d == HIGH) {
@@ -254,15 +197,10 @@ void MCP23017::digitalWrite(uint8_t p, uint8_t d) {
     gpio &= ~(1 << p);
   }
 
-  // write the new GPIO
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(gpioaddr);
-  wiresend(gpio);
-  WIRE.endTransmission();
+  writeRegister(gpioaddr, gpio);
 }
 
 void MCP23017::pullUp(uint8_t p, uint8_t d) {
-  uint8_t gppu;
   uint8_t gppuaddr;
 
   // only 16 bits!
@@ -276,26 +214,8 @@ void MCP23017::pullUp(uint8_t p, uint8_t d) {
     p -= 8;
   }
 
-  // read the current pullup resistor set
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(gppuaddr);
-  WIRE.endTransmission();
-
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
-  gppu = wirerecv();
-
-  // set the pin and direction
-  if (d == HIGH) {
-    gppu |= 1 << p;
-  } else {
-    gppu &= ~(1 << p);
-  }
-
-  // write the new GPIO
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(gppuaddr);
-  wiresend(gppu);
-  WIRE.endTransmission();
+  // update the pullup register
+  updateRegister(gppuaddr, (1 << p), (d == HIGH));
 }
 
 uint8_t MCP23017::digitalRead(uint8_t p) {
@@ -313,12 +233,7 @@ uint8_t MCP23017::digitalRead(uint8_t p) {
   }
 
   // read the current GPIO
-  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-  wiresend(gpioaddr);
-  WIRE.endTransmission();
-
-  WIRE.requestFrom(MCP23017_ADDRESS | i2caddr, 1);
-  return (wirerecv() >> p) & 0x1;
+  return (readRegister(gpioaddr) >> p) & 0x01;
 }
 
 void MCP23017::normalMode() {
@@ -326,15 +241,8 @@ void MCP23017::normalMode() {
   if (mode != 0) {
     // First, we assume we are in BANK=1 mode.
     // Caution: this changes all register locations, including the IOCON!
-    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-    wiresend(MCP23017_BANK_IOCONA);  // IOCON in BANK=1 mode
-    wiresend(0x00);  // BANK=1, SEQOP=0
-    WIRE.endTransmission();
-
-    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-    wiresend(MCP23017_BANK_IOCONB);
-    wiresend(0x00);
-    WIRE.endTransmission();
+    writeRegister(MCP23017_BANK_IOCONA, 0x00); // IOCON in BANK=1 mode, // BANK=0, SEQOP=0
+    //writeRegister(MCP23017_BANK_IOCONB, 0x00); // IOCON in BANK=1 mode, // BANK=0, SEQOP=0
   }
   mode = 0;
 
@@ -371,28 +279,10 @@ void MCP23017::burstMode() {
   if (mode != 1) {
     // First, we assume we are in BANK=0 mode.
     // Caution: this changes all register locations, including the IOCON!
-    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-    wiresend(MCP23017_SEQ_IOCONA);  // IOCON in BANK=0 mode
-    wiresend(0x80);  // BANK=1, SEQOP=0
-    WIRE.endTransmission();
-/*
-    // If we were already in BANK=1 mode, we reset register OLATA to zero.
-    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-    wiresend(MCP23017_SEQ_OLATA);  // hard-code register address: OLATA in BANK=1 mode
-    wiresend(0x00);  // zero output latch
-    WIRE.endTransmission();
-*/
+    writeRegister(MCP23017_SEQ_IOCONA, 0x80); // IOCON in BANK=0 mode,  BANK=1, SEQOP=0
     // Make sure we are in non-sequential mode
-    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-    wiresend(MCP23017_BANK_IOCONA);
-    wiresend(0x80 | 0x20);  // BANK=1, SEQOP=1 - Byte mode w/o sequential addressing
-    WIRE.endTransmission();
-/*
-    WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
-    wiresend(MCP23017_BANK_IOCONB);
-    wiresend(0x80 | 0x20);
-    WIRE.endTransmission();
-*/
+    writeRegister(MCP23017_BANK_IOCONA, 0x80 | 0x20); // IOCON in BANK=1 mode,  BANK=1, SEQOP=1
+      // Byte mode w/o sequential addressing
   }
   mode = 1;
 
@@ -421,3 +311,32 @@ void MCP23017::burstMode() {
   GPIOB = MCP23017_BANK_GPIOB;
   OLATB = MCP23017_BANK_OLATB;
 }
+
+uint8_t MCP23017::readRegister(uint8_t reg)
+{
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(reg);
+  WIRE.endTransmission();
+  WIRE.requestFrom(MCP23017_ADDRESS, 1);
+  return wirerecv();
+}
+
+void MCP23017::writeRegister(uint8_t reg, uint8_t val)
+{
+  WIRE.beginTransmission(MCP23017_ADDRESS | i2caddr);
+  wiresend(reg);
+  wiresend(val);
+  WIRE.endTransmission();
+}
+
+void MCP23017::updateRegister(uint8_t reg, uint8_t mask, bool set)
+{
+  uint8_t val = readRegister(reg);
+  if (set) {
+    val |=  mask;
+  } else {
+    val &= ~mask;
+  }
+  writeRegister(reg, val);
+}
+

@@ -361,10 +361,7 @@ int RGBLCDShield_Fast::waitBusy() {
   // Set data lines as input
   // for (i = 0; i < 4; i++)
     // pinMode(_data_pins[i], INPUT);
-  Wire.beginTransmission(MCP23017_ADDRESS);
-  Wire.write(MCP23017_BANK_IODIRB);
-  Wire.write(0x1e);
-  Wire.endTransmission();
+  _i2c.writeRegister(MCP23017_BANK_IODIRB, (_data_mask[0] | _data_mask[1] | _data_mask[2] | _data_mask[3]));
 
   Wire.beginTransmission(MCP23017_ADDRESS);
   Wire.write(MCP23017_BANK_GPIOB);
@@ -390,12 +387,10 @@ int RGBLCDShield_Fast::waitBusy() {
 
   Wire.endTransmission();
 
+  // Set all data lines as output again
   // for (i = 0; i < 4; i++)
     // pinMode(_data_pins[i], OUTPUT);
-  Wire.beginTransmission(MCP23017_ADDRESS);
-  Wire.write(MCP23017_BANK_IODIRB);
-  Wire.write(0x00);  // all output
-  Wire.endTransmission();
+  _i2c.writeRegister(MCP23017_BANK_IODIRB, 0);
 
   return n;
 }
@@ -456,14 +451,11 @@ void RGBLCDShield_Fast::write4bits(uint8_t value) {
 
   // make sure enable is low
   if (_enable_state == HIGH) {
-    out &= ~_enable_mask;
     _i2c.writeGPIOB(out);
   }
 
   // pulse enable
-  out |= _enable_mask;
-  _i2c.writeGPIOB(out);
-  out &= ~_enable_mask;
+  _i2c.writeGPIOB(out | _enable_mask);
   _i2c.writeGPIOB(out);
 }
 
