@@ -236,7 +236,7 @@ private:
   uint8_t _displaymode;
 
   uint8_t _numlines, _currline;
-  uint8_t _rw_state, _enable_state, _rs_state;
+  uint8_t _rw_state, _rs_state;
   uint8_t _backlight;
   MCP23017 _i2c;
 };

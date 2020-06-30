@@ -10,7 +10,8 @@
  * ---------> http://www.adafruit.com/products/714
  *
  * The shield uses I2C to communicate, 2 pins are required to
- * interface. This fork is significantly faster than the original.
+ * interface.  This fork is significantly faster than the original.
+ *
  * Adafruit invests time and resources providing this open source code,
  * please support Adafruit and open-source hardware by purchasing
  * products from Adafruit!
@@ -117,7 +118,7 @@ void RGBLCDShield_Fast::begin(uint8_t cols, uint8_t lines,
   _digitalWrite(_rs_pin, LOW);
   _digitalWrite(_enable_pin, LOW);
   _digitalWrite(_rw_pin, LOW);
-  _rw_state = _enable_state = _rs_state = LOW;
+  _rw_state = _rs_state = LOW;
 
   // put the LCD into 4 bit mode
   // this is according to the Hitachi HD44780 datasheet
@@ -280,9 +281,6 @@ size_t RGBLCDShield_Fast::write(const uint8_t *buffer, size_t size) {
   uint8_t out, out1;
   uint8_t c = 0;
 
-  _rs_state = HIGH;
-  _rw_state = LOW;
-
   // all LCD pins are on port B and we know all bits already
   out = ~(_backlight >> 2) & 0x1;
   out |= _rs_mask;  // RS==HIGH
@@ -303,6 +301,12 @@ size_t RGBLCDShield_Fast::write(const uint8_t *buffer, size_t size) {
     if (c == 0) {
       Wire.beginTransmission(MCP23017_ADDRESS);
       Wire.write(MCP23017_BANK_GPIOB);
+    }
+    // Changing the RS line should not be done at the same time as
+    //   setting ENABLE. So we might need another write here.
+    if (_rs_state != HIGH) {
+      _rs_state = HIGH;
+      Wire.write(out);
     }
     Wire.write(out | _enable_mask);
     Wire.write(out);
@@ -326,6 +330,8 @@ size_t RGBLCDShield_Fast::write(const uint8_t *buffer, size_t size) {
     }
   }
   if (c != 0) Wire.endTransmission();
+
+  _rw_state = LOW;
   return n;
 }
 
@@ -355,8 +361,6 @@ void RGBLCDShield_Fast::_pinMode(uint8_t p, uint8_t d) {
 
 int RGBLCDShield_Fast::waitBusy() {
   int n = 0;
-  _rs_state = LOW;
-  _rw_state = HIGH;
 
   // Set data lines as input
   // for (i = 0; i < 4; i++)
@@ -367,6 +371,11 @@ int RGBLCDShield_Fast::waitBusy() {
   Wire.write(MCP23017_BANK_GPIOB);
 
   const uint8_t out = _rw_mask;
+
+  // According to the HD44780 timing diagram, RW needs to be set at least 40 ns before enable.
+  // Hence, we need another write.
+  Wire.write(out);
+
   uint8_t busy;
   do {
     Wire.write(out | _enable_mask);
@@ -385,7 +394,12 @@ int RGBLCDShield_Fast::waitBusy() {
     n++;
   } while (busy);
 
+  // Set RW LOW again.
+  Wire.write(0x00);
   Wire.endTransmission();
+
+  // Note that RW is now always LOW at the end of any method.
+  _rs_state = _rw_state = LOW;
 
   // Set all data lines as output again
   // for (i = 0; i < 4; i++)
@@ -399,13 +413,11 @@ int RGBLCDShield_Fast::waitBusy() {
 void RGBLCDShield_Fast::send(uint8_t value, uint8_t mode) {
   uint8_t out, out1;
 
-  _rs_state = mode;
-  _rw_state = LOW;
-
   // all LCD pins are on port B and we know all bits already
   out = ~(_backlight >> 2) & 0x1;
-  if (_rs_state == HIGH)
+  if (mode == HIGH)
     out |= _rs_mask;
+  _rw_state = LOW;
 
   out1 = out;
   if (value & 0x10) out |= _data_mask[0];
@@ -418,6 +430,11 @@ void RGBLCDShield_Fast::send(uint8_t value, uint8_t mode) {
   // _i2c.writeGPIOB(out);
   Wire.beginTransmission(MCP23017_ADDRESS);
   Wire.write(MCP23017_BANK_GPIOB);
+  // Note: changing the RS line should not be done at the same time as
+  //   setting ENABLE. So we might need another write here.
+  if (_rs_state != mode)
+    Wire.write(out);
+  _rs_state = mode;
   Wire.write(out | _enable_mask);
   Wire.write(out);
 
@@ -449,10 +466,9 @@ void RGBLCDShield_Fast::write4bits(uint8_t value) {
       out |= _data_mask[i];
   }
 
-  // make sure enable is low
-  if (_enable_state == HIGH) {
-    _i2c.writeGPIOB(out);
-  }
+  // Note: changing the RS line should not be done at the same time as
+  //   setting ENABLE.
+  // But this method is only ever called with RS=LOW already, so we're OK.
 
   // pulse enable
   _i2c.writeGPIOB(out | _enable_mask);
